@@ -1,0 +1,116 @@
+import random
+from pyrogram import Client, filters
+from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from safe_repo import app
+from safe_repo.core import script
+from safe_repo.core.func import subscribe
+from safe_repo.core.mongo import db as mdb
+from config import OWNER_ID
+
+# ------------------- Start-Buttons ------------------- #
+
+buttons = InlineKeyboardMarkup(
+    [
+        [InlineKeyboardButton("Help", callback_data='show_help'), InlineKeyboardButton("Settings", callback_data='show_settings')],
+        [InlineKeyboardButton("Join Channel", url="https://t.me/safe_repo")],
+        [InlineKeyboardButton("Buy Premium", url="https://t.me/safe_repo_bot")]
+    ]
+)
+
+@app.on_message(filters.command("start"))
+async def start(_, message):
+    join = await subscribe(_, message)
+    if join == 1:
+        return
+    # Check if user has an active session (logged in)
+    data = await mdb.get_data(message.from_user.id)
+    session = None
+    if data:
+        session = data.get("session")
+    status_text = "🔓 You are logged in." if session else "🔒 You are logged out."
+    
+    # Get random motivational quote
+    quote = random.choice(script.MOTIVATIONAL_QUOTES)
+    
+    await message.reply_text(
+        text=script.START_TXT.format(message.from_user.mention) + 
+             f"\n\n{status_text}\n\n💭 **Daily Motivation:**\n\"{quote}\"",
+        reply_markup=buttons
+    )
+
+@app.on_callback_query(filters.regex('show_help'))
+async def show_help_callback(_, callback_query):
+    help_buttons = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Usage Instructions", callback_data='show_help2')],
+            [InlineKeyboardButton("Back", callback_data='back_to_start')]
+        ]
+    )
+    await callback_query.answer()
+    await callback_query.edit_message_text(
+        text=script.HELP_TXT,
+        reply_markup=help_buttons
+    )
+
+@app.on_callback_query(filters.regex('show_help2'))
+async def show_help2_callback(_, callback_query):
+    help2_buttons = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Back to Help", callback_data='show_help')],
+            [InlineKeyboardButton("Back to Start", callback_data='back_to_start')]
+        ]
+    )
+    await callback_query.answer()
+    await callback_query.edit_message_text(
+        text=script.HELP2_TXT,
+        reply_markup=help2_buttons
+    )
+
+@app.on_callback_query(filters.regex('show_settings'))
+async def show_settings_callback(_, callback_query):
+    settings_buttons = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Back", callback_data='back_to_start')]
+        ]
+    )
+    await callback_query.answer()
+    await callback_query.edit_message_text(
+        text=script.SETTINGS_TXT,
+        reply_markup=settings_buttons
+    )
+
+@app.on_message(filters.command("help"))
+async def help_command(_, message):
+    join = await subscribe(_, message)
+    if join == 1:
+        return
+    
+    help_buttons = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Usage Instructions", callback_data='show_help2')],
+            [InlineKeyboardButton("Back to Start", callback_data='back_to_start')]
+        ]
+    )
+    await message.reply_text(
+        text=script.HELP_TXT,
+        reply_markup=help_buttons
+    )
+
+@app.on_callback_query(filters.regex('back_to_start'))
+async def back_to_start_callback(_, callback_query):
+    # Check if user has an active session (logged in)
+    data = await mdb.get_data(callback_query.from_user.id)
+    session = None
+    if data:
+        session = data.get("session")
+    status_text = "🔓 You are logged in." if session else "🔒 You are logged out."
+    
+    # Get random motivational quote
+    quote = random.choice(script.MOTIVATIONAL_QUOTES)
+    
+    await callback_query.answer()
+    await callback_query.edit_message_text(
+        text=script.START_TXT.format(callback_query.from_user.mention) + 
+             f"\n\n{status_text}\n\n💭 **Daily Motivation:**\n\"{quote}\"",
+        reply_markup=buttons
+    )
