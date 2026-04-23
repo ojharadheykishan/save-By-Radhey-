@@ -55,7 +55,7 @@ async def single_link(_, message):
                 q = await userbot_join(userbot, link)
                 await msg.edit_text(q)
             elif 't.me/' in link:
-                await get_msg(userbot, user_id, msg.id, link, 0, message)
+                 await get_msg(userbot, user_id, msg.id, link, 0, message, False)
         except Exception as e:
             logger.error(f"Processing error: {e}")
             await msg.edit_text(f"Link: `{link}`\n\n**Error:** {str(e)}")
@@ -251,7 +251,7 @@ async def batch_link(_, message):
                         url = f"{result}/{i}"
                         
                         # Process the message
-                        await get_msg(userbot, user_id, msg.id, url, 0, message)
+                         await get_msg(userbot, user_id, msg.id, url, 0, message, True)
                         
                         # Increment processed count
                         processed_count += 1
