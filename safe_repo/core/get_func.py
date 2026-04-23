@@ -48,30 +48,26 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                 msg = await userbot.get_messages(chat, msg_id)
                 caption = None
 
-                 if msg.service is not None:
-                     return None 
-                 if msg.empty is not None:
-                     return None                          
-                 if msg.media:
-                     if msg.media == MessageMediaType.WEB_PAGE:
-                         target_chat_id = user_chat_ids.get(chatx, chatx)
-                         edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...\nRadhey")
-                         safe_repo = await app.send_message(sender, f"{msg.text.markdown}\n\nRadhey")
-                         if msg.pinned_message:
-                             try:
-                                 await safe_repo.pin(both_sides=True)
-                             except Exception as e:
-                                 await safe_repo.pin()
-                             try:
-                                 await safe_repo.copy(LOG_GROUP)
-                             except Exception as e:
-                                 logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                             await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\nBY @Radheyojha096\n\n__**Powered by safe_repo**__")
-                    except Exception:
-                        pass
-                    
-                    os.remove(file)
-                        
+                if msg.service is not None:
+                    return None
+                if msg.empty is not None:
+                    return None
+                if msg.media:
+                    if msg.media == MessageMediaType.WEB_PAGE:
+                        target_chat_id = user_chat_ids.get(chatx, chatx)
+                        edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...\nRadhey")
+                        safe_repo = await app.send_message(sender, f"{msg.text.markdown}\n\nRadhey")
+                        if msg.pinned_message:
+                            try:
+                                await safe_repo.pin(both_sides=True)
+                            except Exception:
+                                await safe_repo.pin()
+                        try:
+                            await safe_repo.copy(LOG_GROUP)
+                        except Exception as e:
+                            logger.error(f"Failed to copy to LOG_GROUP: {e}")
+                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\nBY @Radheyojha096\n\n__**Powered by safe_repo**__")
+                        os.remove(file)
                 elif msg.media == MessageMediaType.PHOTO:
                     await edit.edit("**`Uploading photo...`**\nRadhey")
                     delete_words = load_delete_words(sender)
@@ -95,7 +91,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                     
                     # Upload to target chat
                     try:
-                        safe_repo = await app.send_photo(chat_id=target_chat_id, photo=file, caption=caption, progress=progress_bar, progress_args=('**__Uploading...__**\n', edit, time.time()))
+                        safe_repo = await app.send_photo(chat_id=target_chat_id, photo=file, caption=caption, progress=progress_bar, progress_args=('**__Uploading...__**\n', edit, time.time(), file, msg_link))
                         if msg.pinned_message:
                             try:
                                 await safe_repo.pin(both_sides=True)
@@ -157,7 +153,9 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                                 progress_args=(
                                     '**`Uploading PDF...`**\n',
                                     edit,
-                                    time.time()
+                                    time.time(),
+                                    file,
+                                    msg_link
                                     )
                             )
                         else:
@@ -170,7 +168,9 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                                 progress_args=(
                                     '**`Uploading document...`**\n',
                                     edit,
-                                    time.time()
+                                    time.time(),
+                                    file,
+                                    msg_link
                                     )
                                 )
                         
@@ -233,7 +233,9 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                             progress_args=(
                                 '**`Uploading...`**\n',
                                 edit,
-                                time.time()
+                                time.time(),
+                                file,
+                                msg_link
                                 )
                             )
                         if msg.pinned_message:
