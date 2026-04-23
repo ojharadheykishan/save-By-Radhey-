@@ -49,6 +49,44 @@ HELP SECTION 📝
 📦 /batch - Download bulk links in a systematic way.
 
 ⛔ /cancel - Stop batch processing.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📥 HOW TO COPY MEDIA FROM BOT:
+
+1️⃣ Login First:
+• Use /login command
+• Send your session string
+• Wait for confirmation
+
+2️⃣ Send Media Links:
+• Public channels: https://t.me/channel_name/message_id
+• Private channels: https://t.me/c/channel_id/message_id
+• Bot messages: https://t.me/b/bot_username/message_id
+
+3️⃣ Batch Download:
+• Use /batch command
+• Send start link: https://t.me/c/123456/100
+• Send end link: https://t.me/c/123456/105
+• Bot will download messages 100-105
+
+4️⃣ Customize Output:
+• Use /settings to set caption, thumbnail, etc.
+• Set custom rename tags
+• Configure destination chat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ SUPPORTED MEDIA TYPES:
+• 📹 Videos (MP4, MKV, etc.)
+• 📸 Photos/Images
+• 📄 Documents (PDF, ZIP, etc.)
+• 🎵 Audio files
+• 📝 Text messages
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 NEED HELP? Contact @Radheyojha096
 """
 
 HELP2_TXT = """
@@ -127,17 +165,25 @@ CMD_HELP_TXT = """
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📦 CONTENT DOWNLOAD COMMANDS:
+📦 CONTENT COPY/DOWNLOAD COMMANDS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
- 🔹 [Paste Link] - Download any public/private channel post
-    Usage: Send any Telegram message link directly
-    
- 🔹 /batch - Download multiple links systematically
-    Usage: /batch then paste all links
-    
+ 🔹 [Single Link] - Copy any media from Telegram
+    Usage: Simply paste any Telegram message link
+    Example: https://t.me/channel_name/12345
+    Example: https://t.me/c/123456789/12345
+
+ 🔹 /batch - Download multiple messages in bulk
+    Usage: /batch then provide start and end links
+    Example: Start: https://t.me/c/123456/100
+             End: https://t.me/c/123456/105
+    Result: Downloads messages 100-105
+
  🔹 /cancel - Stop current batch processing
     Usage: /cancel
+
+ 🔹 /howtocopy - Detailed guide for copying media
+    Usage: /howtocopy (shows step-by-step instructions) (works only during batch process)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -220,7 +266,42 @@ CMD_HELP_TXT = """
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💡 Tip: Use /settings to customize your experience!
+ 💡 Tip: Use /settings to customize your experience!
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 COPY MEDIA EXAMPLES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PUBLIC CHANNEL:
+• Link: https://t.me/channel_name/12345
+• Bot Action: Downloads and uploads the media
+
+🎯 PRIVATE CHANNEL:
+• Link: https://t.me/c/123456789/12345
+• Bot Action: Accesses via your session and copies
+
+🎯 BOT MESSAGES:
+• Link: https://t.me/b/bot_username/12345
+• Bot Action: Copies bot messages and media
+
+🎯 GROUP TOPICS:
+• Private: https://t.me/c/123456789/12345
+• Public: https://t.me/group_name/12345
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ IMPORTANT NOTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• 🔐 Login required for private content
+• ⏳ Large files may take time to process
+• 📊 Premium users get priority processing
+• 🚫 Some content may be restricted by Telegram
+• 🔄 Bot adds "BY @Radheyojha096" to all uploads
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 SUPPORT: @Radheyojha096
 __**Powered by safe_repo**__
 """

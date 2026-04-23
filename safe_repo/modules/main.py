@@ -5,7 +5,7 @@ import asyncio
 from pyrogram import filters, Client
 from safe_repo import app
 from config import API_ID, API_HASH
-from safe_repo.core.get_func import get_msg
+from safe_repo.core.get_func import get_msg, get_link
 from safe_repo.core.func import *
 from safe_repo.core.mongo import db, plans_db
 from pyrogram.errors import FloodWait, SessionRevoked, AuthKeyDuplicated, AuthKeyUnregistered
@@ -101,6 +101,101 @@ async def settings_command(_, message):
 @app.on_message(filters.command("cmdhelp"))
 async def cmd_help_command(_, message):
     await message.reply_text(text=script.CMD_HELP_TXT, disable_web_page_preview=True)
+
+
+@app.on_message(filters.command("howtocopy"))
+async def how_to_copy_command(_, message):
+    copy_guide = """
+🎯 **HOW TO COPY MEDIA USING THIS BOT** 🎯
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 **STEP BY STEP GUIDE:**
+
+**1️⃣ LOGIN FIRST (REQUIRED):**
+• Send: `/login`
+• Follow the instructions to login with your session
+• This allows bot to access your private channels
+
+**2️⃣ COPY SINGLE MEDIA:**
+• Just paste any Telegram link directly:
+  📹 `https://t.me/channel_name/12345`
+  🔒 `https://t.me/c/channel_id/12345`
+  🤖 `https://t.me/b/bot_username/12345`
+
+**3️⃣ COPY MULTIPLE MEDIA (BATCH):**
+• Send: `/batch`
+• Bot will ask for start link: `https://t.me/c/12345/100`
+• Bot will ask for end link: `https://t.me/c/12345/105`
+• Bot downloads messages 100-105 automatically
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎬 **SUPPORTED CONTENT TYPES:**
+• Videos (MP4, MKV, AVI, etc.)
+• Photos & Images
+• Documents (PDF, DOC, ZIP, etc.)
+• Audio files
+• Text messages
+• Stickers & Animations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚙️ **CUSTOMIZE YOUR OUTPUT:**
+• Use `/settings` to configure:
+  📝 Custom captions
+  🖼️ Thumbnails
+  📁 File renaming
+  🎯 Target chat ID
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 **TIPS FOR SUCCESS:**
+
+✅ **For Private Channels:**
+• Must be logged in with `/login`
+• Your account must have access to the channel
+
+✅ **For Public Channels:**
+• Works without login
+• Just paste the link directly
+
+✅ **For Large Files:**
+• Be patient, downloads may take time
+• Premium users get faster processing
+
+✅ **For Batch Processing:**
+• Use `/cancel` to stop if needed
+• Free users: max 100 messages
+• Premium users: unlimited
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ **COMMON ISSUES & SOLUTIONS:**
+
+🔸 "Login expired" → Use `/login` again
+🔸 "Have you joined the channel?" → Login with correct session
+🔸 "Floodwait" → Wait for the specified time
+🔸 "File too large" → Contact admin for help
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 **NEED HELP?**
+Contact: @Radheyojha096
+
+💝 **All copied media includes:**
+"BY @Radheyojha096" credit
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 **START NOW:**
+1. Send `/login` to login
+2. Send `/settings` to customize
+3. Paste any media link to copy!
+
+__**Powered by safe_repo**__
+"""
+    await message.reply_text(copy_guide, disable_web_page_preview=True)
 
 
 @app.on_callback_query(filters.regex(r'^(setchat|setrename|setcaption|setreplacement|addsession|delete|logout|setthumb|reset|remthumb)$'))
