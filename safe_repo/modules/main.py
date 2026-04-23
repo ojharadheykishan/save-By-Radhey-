@@ -252,7 +252,7 @@ async def batch_link(_, message):
                         url = f"{result}/{i}"
                         
                         # Process the message
-                         await get_msg(userbot, user_id, msg.id, url, 0, message, True)
+                        await get_msg(userbot, user_id, msg.id, url, 0, message, True)
                         
                         # Increment processed count
                         processed_count += 1
