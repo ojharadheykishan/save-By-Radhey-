@@ -52,7 +52,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                     return None
                 if msg.empty is not None:
                     return None
-                 if msg.media:
+                if msg.media:
                      # Download the media file first
                      edit = await app.edit_message_text(sender, edit_id, "Trying to Download...\nRadhey")
                      # Add timeout and retry mechanism for downloads
