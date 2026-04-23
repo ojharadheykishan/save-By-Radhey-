@@ -2,7 +2,10 @@
 
 
 import math
-import time , re
+import os
+import random
+import time
+import re
 import logging
 from pyrogram import enums
 from config import CHANNEL_ID, OWNER_ID 
@@ -90,42 +93,189 @@ async def get_seconds(time_string):
 
 
 PROGRESS_BAR = (
-    "📥 **Downloading** | 📤 **Uploading**\n"
-    "{bar}\n"
-    "✅ Progress: {percent}%\n"
-    "📊 Size: {current}/{total}\n"
-    "⚡ Speed: {speed}/s | ⏱️ ETA: {eta}\n"
-    "Radhey"
+    "{status}\n"
+    "📁 Name: {filename}\n"
+    "📄 Extension: {extension}\n"
+    "{link_label} {link}\n\n"
+    "{bar} {percent}%\n"
+    "📦 Size: {current}/{total}\n"
+    "⚡ Speed: {speed}/s | ⏳ ETA: {eta}\n"
+    "🎨 Theme: {theme}\n\n"
+    "💬 {extra_title}:\n"
+    "\"{extra_line1}\"\n"
+    "\"{extra_line2}\"\n"
+    "__Powered by safe_repo__"
 )
 
+THEME_STYLES = [
+    ("Neon Blue", ["🟦", "🟦", "⬜"]),
+    ("Fire Red", ["🟥", "🟧", "🟨", "⬜"]),
+    ("Matrix Green", ["🟩", "⬛", "⚪"]),
+    ("Gold Premium", ["🟨", "🟧", "⬜"]),
+    ("Purple Cyber", ["🟪", "⬜", "⚫"]),
+    ("Rainbow Gradient", ["🌈", "⚪", "⬛"]),
+]
 
-async def progress_bar(current, total, ud_type, message, start):
+STATUS_STATES = [
+    "📥 Downloading...",
+    "📤 Uploading...",
+    "🔄 Processing...",
+    "🧩 Merging...",
+    "🗜 Compressing...",
+    "✅ Completed",
+]
+
+EXTRA_LINES = [
+    # Shayari
+    ("Shayari", "💖 Shayari", "Teri yaadon ka safar bhi kamaal hai,", "File download ho ya dil, dono slow hai."),
+    ("Shayari", "💖 Shayari", "Aankhon mein sapne aur file mein speed,", "Dono ko ek saath chalaane ka hai need."),
+    ("Shayari", "💖 Shayari", "Tera har message ek naya rang deta,", "Aur ye download ek naya dil jeet leta."),
+    ("Shayari", "💖 Shayari", "Download ki raahon mein tere khayal,", "Har percent ek naya ehsaas deta hai."),
+    ("Shayari", "💖 Shayari", "File ki tarah teri mohabbat bhi,", "Kabhi tez kabhi halki si beh rahi hai."),
+
+    # Jokes
+    ("Joke", "😂 Joke", "Internet itna slow hai,", "Snail bhi aage nikal gaya."),
+    ("Joke", "😂 Joke", "Server ne bola \"kuch der aur\",", "Internet ne bola \"abhi aa raha hoon\"."),
+    ("Joke", "😂 Joke", "Ye download itna slow hai,", "Ki purana phone bhi jealous ho gaya."),
+    ("Joke", "😂 Joke", "Network ne mujhe block kar diya,", "Kaha \"zyada download kar raha hai tu\"."),
+    ("Joke", "😂 Joke", "Progress bar ne mujhse kaha,", "\"Boss, main to complete ho gaya, tu ruk kyun raha hai?\""),
+
+    # Motivation
+    ("Motivation", "🔥 Motivation", "Har percent progress success hai,", "Rukna mat, finish tak jao."),
+    ("Motivation", "🔥 Motivation", "Har byte ek kadam hai,", "Finish line tumhara intezaar kar rahi hai."),
+    ("Motivation", "🔥 Motivation", "Bas thoda aur sabr rakho,", "Jeet finish line ke baad milti hai."),
+    ("Motivation", "🔥 Motivation", "Har challenge ek opportunity hai,", "Har download ek new beginning."),
+    ("Motivation", "🔥 Motivation", "Speed kam hai par determination high,", "Ye journey success ki taraf le jaayegi."),
+
+    # Funny
+    ("Funny", "😎 Funny", "File aa rahi hai boss,", "Bas network chai pe gaya hai."),
+    ("Funny", "😎 Funny", "Progress bar itna stylish hai,", "Aur upload itna slow hai."),
+    ("Funny", "😎 Funny", "Ye download ki speed dekh kar,", "Turtle ne bhi protest kar diya."),
+    ("Funny", "😎 Funny", "Server ne mujhe friend request bheji,", "Kaha \"download karne ka hai plan\"."),
+    ("Funny", "😎 Funny", "Progress bar ne selfie li,", "Kaha \"main to complete ho gaya, tu kab?\""),
+    ("Funny", "😎 Funny", "Ye upload ki speed dekh kar,", "Cheetah ne bhi training lene ka soch liya."),
+    ("Funny", "😎 Funny", "Network ne kaha \"ab bas kar\",", "Main ne kaha \"ek aur file bas\"."),
+    ("Funny", "😎 Funny", "Download complete hone ka wait,", "Jaise exam ka result ka intezar."),
+    ("Funny", "😎 Funny", "Ye progress bar itna cool hai,", "Ki AC ki zaroorat nahi padti."),
+    ("Funny", "😎 Funny", "File aa rahi hai slowly slowly,", "Jaise ki coffee shop mein line lagi ho."),
+]
+
+
+def choose_progress_style(percentage: float) -> str:
+    style = random.choice(THEME_STYLES)[1]
+    segments = 12
+    filled = int((percentage / 100) * segments)
+    bar = ""
+    for i in range(segments):
+        bar += style[0] if i < filled else style[-1]
+    return bar
+
+
+def choose_theme() -> str:
+    return random.choice(THEME_STYLES)[0]
+
+
+def choose_status(ud_type: str, percentage: float) -> str:
+    normalized = ud_type.strip()
+    if percentage >= 100:
+        return "✅ Completed"
+    if normalized:
+        return normalized
+    return random.choice(STATUS_STATES)
+
+
+def choose_extra_text() -> tuple[str, str, str]:
+    title, label, line1, line2 = random.choice(EXTRA_LINES)
+    return label, line1, line2
+
+
+def clean_link(link: str) -> str:
+    if not link:
+        return "N/A"
+    return link.strip()
+
+
+async def progress_bar(current, total, *args):
     try:
+        # Extract parameters from args
+        # args[0] = ud_type, args[1] = message, args[2] = start, args[3] = file_path, args[4] = source_link
+        ud_type = args[0] if len(args) > 0 else "Processing..."
+        message = args[1] if len(args) > 1 else None
+        start = args[2] if len(args) > 2 else time.time()
+        file_path = args[3] if len(args) > 3 else None
+        source_link = args[4] if len(args) > 4 else None
+
+        if message is None:
+            return
+
         now = time.time()
         diff = now - start if start else 1
         percentage = 0 if total == 0 else (current * 100) / total
         speed = 0 if diff == 0 else current / diff
         eta_seconds = 0 if speed == 0 else (total - current) / speed
 
-        bar_count = int(percentage // 2)  # 50 slots for more detailed progress
-        bar = "[" + "█" * bar_count + "░" * (50 - bar_count) + "]"
+        filename = os.path.basename(file_path) if file_path else "Unknown"
+        extension = os.path.splitext(filename)[1][1:] if "." in filename else "unknown"
+        status = choose_status(ud_type, percentage)
+        theme = choose_theme()
+        bar = choose_progress_style(percentage)
+        extra_title, extra_line1, extra_line2 = choose_extra_text()
+        link = clean_link(source_link)
+
+        # Determine if this is download or upload based on ud_type
+        if "Downloading" in ud_type:
+            link_label = "🔗 Source Link:"
+        elif "Uploading" in ud_type:
+            link_label = "🔗 Destination Link:"
+        else:
+            link_label = "🔗 Link:"
 
         text = PROGRESS_BAR.format(
+            status=status,
+            filename=filename,
+            extension=extension,
+            link_label=link_label,
+            link=link,
             bar=bar,
             percent=round(percentage, 2),
             current=humanbytes(current),
             total=humanbytes(total),
             speed=humanbytes(speed),
-            eta=convert(int(eta_seconds))
+            eta=convert(int(eta_seconds)),
+            theme=theme,
+            extra_title=extra_title,
+            extra_line1=extra_line1,
+            extra_line2=extra_line2,
         )
 
-        # Update message only if there's a significant change or at least 1 second has passed (more reliable)
         if not hasattr(progress_bar, "last_update") or (now - progress_bar.last_update) > 1.0:
-            await message.edit(text=f"{ud_type}\n\n{text}")
+            await message.edit(text=text)
             progress_bar.last_update = now
     except Exception as e:
-        # Log error but continue processing
         logger.error(f"Progress bar error: {e}")
+        pass
+
+
+async def show_completion_ui(message, file_path, total_time, file_size):
+    """Show completion UI after successful download/upload"""
+    try:
+        filename = os.path.basename(file_path) if file_path else "Unknown"
+        completion_text = f"""
+✅ **Download Complete**
+📁 **Saved Successfully**
+
+📄 **File:** `{filename}`
+📦 **Size:** {humanbytes(file_size)}
+⚡ **Total Time:** {convert(int(total_time))}
+🎉 **Ready to Open**
+
+💝 **BY @Radheyojha096**
+
+__**Powered by safe_repo**__
+"""
+        await message.edit(completion_text)
+    except Exception as e:
+        logger.error(f"Completion UI error: {e}")
         pass
 
 # Initialize last_update attribute

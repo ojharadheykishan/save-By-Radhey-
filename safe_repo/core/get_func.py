@@ -52,8 +52,52 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                     return None
                 if msg.empty is not None:
                     return None
-                if msg.media:
-                    if msg.media == MessageMediaType.WEB_PAGE:
+                 if msg.media:
+                     # Download the media file first
+                     edit = await app.edit_message_text(sender, edit_id, "Trying to Download...\nRadhey")
+                     # Add timeout and retry mechanism for downloads
+                     max_retries = 3
+                     retry_delay = 5  # seconds
+                     file = None
+
+                     for attempt in range(max_retries):
+                         try:
+                             # Use larger timeout and progress updates for better reliability
+                             file = await asyncio.wait_for(
+                                 userbot.download_media(
+                                     msg,
+                                     progress=progress_bar,
+                                     progress_args=("**📥 Downloading...**\n", edit, time.time(), "", msg_link)
+                                 ),
+                                 timeout=3600  # 1 hour timeout for large files
+                             )
+                             break  # Success, exit loop
+                         except asyncio.TimeoutError:
+                             await app.edit_message_text(
+                                 sender,
+                                 edit_id,
+                                 f"Download timed out. Attempt {attempt + 1}/{max_retries}..."
+                             )
+                             if attempt < max_retries - 1:
+                                 await asyncio.sleep(retry_delay)
+                         except Exception as e:
+                             await app.edit_message_text(
+                                 sender,
+                                 edit_id,
+                                 f"Download failed: {str(e)}. Attempt {attempt + 1}/{max_retries}..."
+                             )
+                             if attempt < max_retries - 1:
+                                 await asyncio.sleep(retry_delay)
+
+                     if not file:
+                         await app.edit_message_text(
+                             sender,
+                             edit_id,
+                             "Failed to download media after multiple attempts. Please try again later."
+                         )
+                         return
+
+                     if msg.media == MessageMediaType.WEB_PAGE:
                         target_chat_id = user_chat_ids.get(chatx, chatx)
                         edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...\nRadhey")
                         safe_repo = await app.send_message(sender, f"{msg.text.markdown}\n\nRadhey")
