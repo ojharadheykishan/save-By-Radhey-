@@ -51,11 +51,12 @@ async def single_link(_, message):
             return
 
         try:
-            if 't.me/+' in link:
+            # Handle various Telegram link formats
+            if 't.me/+' in link or 'telegram.me/+' in link:
                 q = await userbot_join(userbot, link)
                 await msg.edit_text(q)
-            elif 't.me/' in link:
-                 await get_msg(userbot, user_id, msg.id, link, 0, message, False)
+            elif 't.me/' in link or 'telegram.me/' in link:
+                await get_msg(userbot, user_id, msg.id, link, 0, message, False)
         except Exception as e:
             logger.error(f"Processing error: {e}")
             await msg.edit_text(f"Link: `{link}`\n\n**Error:** {str(e)}")
