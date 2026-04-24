@@ -89,13 +89,13 @@ async def get_msg(
                             if attempt < max_retries - 1:
                                 await asyncio.sleep(retry_delay)
                         except Exception as e:
-                            await app.edit_message_text(
-                                sender,
-                                edit_id,
+                             await app.edit_message_text(
+                                 sender,
+                                 edit_id,
                                  f"Download failed: {str(e)}. Attempt {attempt + 1}/{max_retries}..."
-                            )
-                            if attempt < max_retries - 1:
-                                await asyncio.sleep(retry_delay)
+                             )
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(retry_delay)
 
                     if not file:
                         await app.edit_message_text(
