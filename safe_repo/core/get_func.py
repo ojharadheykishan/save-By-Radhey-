@@ -1,4 +1,4 @@
-#safe_repo
+# safe_repo
 
 import asyncio
 import time
@@ -20,14 +20,20 @@ from config import LOG_GROUP
 
 # Configure logging
 logger = logging.getLogger(__name__)
-    
-
 
 
 def thumbnail(sender):
     return f'{sender}.jpg' if os.path.exists(f'{sender}.jpg') else None
 
-async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False):
+
+async def get_msg(
+    userbot,
+    sender,
+    edit_id,
+    msg_link,
+    i,
+    message,
+     is_batch=False):
     edit = ""
     chat = ""
     round_message = False
@@ -41,7 +47,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
             if 't.me/b/' not in msg_link:
                 chat = int('-100' + str(msg_link.split("/")[-2]))
             else:
-                chat = msg_link.split("/")[-2]       
+                chat = msg_link.split("/")[-2]
             file = ""
             try:
                 chatx = message.chat.id
@@ -62,12 +68,14 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
 
                      for attempt in range(max_retries):
                          try:
-                             # Use larger timeout and progress updates for better reliability
+                             # Use larger timeout and progress updates for
+                             # better reliability
                              file = await asyncio.wait_for(
                                  userbot.download_media(
                                      msg,
                                      progress=progress_bar,
-                                     progress_args=("**📥 Downloading...**\n", edit, time.time(), "", msg_link)
+                                     progress_args=(
+    "**📥 Downloading...**\n", edit, time.time(), "", msg_link)
                                  ),
                                  timeout=3600  # 1 hour timeout for large files
                              )
@@ -76,7 +84,8 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                              await app.edit_message_text(
                                  sender,
                                  edit_id,
-                                 f"Download timed out. Attempt {attempt + 1}/{max_retries}..."
+                                 f"Download timed out. Attempt {
+    attempt + 1}/{max_retries}..."
                              )
                              if attempt < max_retries - 1:
                                  await asyncio.sleep(retry_delay)
@@ -84,18 +93,22 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                              await app.edit_message_text(
                                  sender,
                                  edit_id,
-                                 f"Download failed: {str(e)}. Attempt {attempt + 1}/{max_retries}..."
+                                 f"Download failed: {
+    str(e)}. Attempt {
+        attempt + 1}/{max_retries}..."
                              )
                              if attempt < max_retries - 1:
                                  await asyncio.sleep(retry_delay)
 
                      if not file:
-                         await app.edit_message_text(
-                             sender,
-                             edit_id,
-                             "Failed to download media after multiple attempts. Please try again later."
-                         )
-                         return
+                          await app.edit_message_text(
+                              sender,
+                              edit_id,
+                              "Failed to download media after multiple attempts. Please try again later."
+                          )
+                          return
+
+                     new_file_name = os.path.basename(file)
 
                      if msg.media == MessageMediaType.WEB_PAGE:
                         target_chat_id = user_chat_ids.get(chatx, chatx)
@@ -110,204 +123,199 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                             await safe_repo.copy(LOG_GROUP)
                         except Exception as e:
                             logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\nBY @Radheyojha096\n\n__**Powered by safe_repo**__")
+                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📄 **Text:** `{msg.text[:50]}...`\n\nBY @Radheyojha096\n\n__**Powered by safe_repo**__")
+                     elif msg.media == MessageMediaType.PHOTO:
+                        await edit.edit("**`Uploading photo...`**\nRadhey")
+                        delete_words = load_delete_words(sender)
+                        custom_caption = get_user_caption_preference(sender)
+                        original_caption = msg.caption if msg.caption else ''
+                        final_caption = custom_caption if custom_caption else original_caption
+                        lines = final_caption.split('\n')
+                        processed_lines = []
+                        for line in lines:
+                            for word in delete_words:
+                                line = line.replace(word, '')
+                            if line.strip():
+                                processed_lines.append(line.strip())
+                        final_caption = '\n'.join(processed_lines)
+                        replacements = load_replacement_words(sender)
+                        for word, replace_word in replacements.items():
+                            final_caption = final_caption.replace(
+                                word, replace_word)
+                        caption = f"{final_caption}\nRadhey"
+
+                        target_chat_id = user_chat_ids.get(sender, sender)
+
+                        # Upload to target chat
+                        try:
+                            safe_repo = await app.send_photo(chat_id=target_chat_id, photo=file, caption=caption, progress=progress_bar, progress_args=('**__Uploading...__**\n', edit, time.time(), file, msg_link))
+                            if msg.pinned_message:
+                                try:
+                                    await safe_repo.pin(both_sides=True)
+                                except Exception as e:
+                                    await safe_repo.pin()
+                            sent_success = True
+                        except Exception as e:
+                            sent_success = False
+                            logger.error(f"Error uploading photo: {e}")
+                            await app.edit_message_text(sender, edit_id, f"Error uploading photo: {str(e)}")
+
+                        # Copy to LOG_GROUP if needed
+                        if sent_success:
+                            try:
+                                if target_chat_id != LOG_GROUP:
+                                    await safe_repo.copy(LOG_GROUP)
+                            except Exception as e:
+                                logger.error(
+    f"Failed to copy to LOG_GROUP: {e}")
+
+                        # Show success message with filename
+                        try:
+                            await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
+                        except Exception:
+                            pass
+
                         os.remove(file)
-                elif msg.media == MessageMediaType.PHOTO:
-                    await edit.edit("**`Uploading photo...`**\nRadhey")
-                    delete_words = load_delete_words(sender)
-                    custom_caption = get_user_caption_preference(sender)
-                    original_caption = msg.caption if msg.caption else ''
-                    final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
-                    lines = final_caption.split('\n')
-                    processed_lines = []
-                    for line in lines:
-                        for word in delete_words:
-                            line = line.replace(word, '')
-                        if line.strip():
-                            processed_lines.append(line.strip())
-                    final_caption = '\n'.join(processed_lines)
-                    replacements = load_replacement_words(sender)
-                    for word, replace_word in replacements.items():
-                        final_caption = final_caption.replace(word, replace_word)
-                    caption = f"{final_caption}\n\n__**{custom_caption}**__\nRadhey" if custom_caption else f"{final_caption}\nRadhey"
+     elif msg.media == MessageMediaType.DOCUMENT:
+        await edit.edit("**`Uploading document...`**\nRadhey")
+        thumb_path = thumbnail(chatx)
+        delete_words = load_delete_words(sender)
+        custom_caption = get_user_caption_preference(sender)
+        original_caption = msg.caption if msg.caption else ''
+        final_caption = custom_caption if custom_caption else original_caption
+        lines = final_caption.split('\n')
+        processed_lines = []
+        for line in lines:
+            for word in delete_words:
+                line = line.replace(word, '')
+            if line.strip():
+                processed_lines.append(line.strip())
+        final_caption = '\n'.join(processed_lines)
+        replacements = load_replacement_words(chatx)
+        for word, replace_word in replacements.items():
+            final_caption = final_caption.replace(
+                word, replace_word)
+        caption = f"{final_caption}\n\n__**{custom_caption}**__\nRadhey" if custom_caption else f"{final_caption}\nRadhey"
 
-                    target_chat_id = user_chat_ids.get(sender, sender)
-                    
-                    # Upload to target chat
-                    try:
-                        safe_repo = await app.send_photo(chat_id=target_chat_id, photo=file, caption=caption, progress=progress_bar, progress_args=('**__Uploading...__**\n', edit, time.time(), file, msg_link))
-                        if msg.pinned_message:
-                            try:
-                                await safe_repo.pin(both_sides=True)
-                            except Exception as e:
-                                await safe_repo.pin()
-                        sent_success = True
-                    except Exception as e:
-                        sent_success = False
-                        logger.error(f"Error uploading photo: {e}")
-                        await app.edit_message_text(sender, edit_id, f"Error uploading photo: {str(e)}")
-                    
-                    # Copy to LOG_GROUP if needed
-                    if sent_success:
-                        try:
-                            if target_chat_id != LOG_GROUP:
-                                await safe_repo.copy(LOG_GROUP)
-                        except Exception as e:
-                            logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                    
-                    # Show success message with filename
-                    try:
-                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
-                    except Exception:
-                        pass
-                    
-                    os.remove(file)
-                elif msg.media == MessageMediaType.DOCUMENT:
-                    await edit.edit("**`Uploading document...`**\nRadhey")
-                    thumb_path = thumbnail(chatx)
-                    delete_words = load_delete_words(sender)
-                    custom_caption = get_user_caption_preference(sender)
-                    original_caption = msg.caption if msg.caption else ''
-                    final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
-                    lines = final_caption.split('\n')
-                    processed_lines = []
-                    for line in lines:
-                        for word in delete_words:
-                            line = line.replace(word, '')
-                        if line.strip():
-                            processed_lines.append(line.strip())
-                    final_caption = '\n'.join(processed_lines)
-                    replacements = load_replacement_words(chatx)
-                    for word, replace_word in replacements.items():
-                        final_caption = final_caption.replace(word, replace_word)
-                    caption = f"{final_caption}\n\n__**{custom_caption}**__\nRadhey" if custom_caption else f"{final_caption}\nRadhey"
+        target_chat_id = user_chat_ids.get(chatx, chatx)
 
-                    target_chat_id = user_chat_ids.get(chatx, chatx)
-                    
-                    # Upload to target chat
-                    try:
-                        # Check if it's a PDF file
-                        if msg.document.mime_type == "application/pdf":
-                            safe_repo = await app.send_document(
-                                chat_id=target_chat_id,
-                                document=file,
-                                caption=caption,
-                                thumb=thumb_path,
-                                progress=progress_bar,
-                                progress_args=(
-                                    '**`Uploading PDF...`**\n',
-                                    edit,
-                                    time.time(),
-                                    file,
-                                    msg_link
-                                    )
-                            )
-                        else:
-                            safe_repo = await app.send_document(
-                                chat_id=target_chat_id,
-                                document=file,
-                                caption=caption,
-                                thumb=thumb_path,
-                                progress=progress_bar,
-                                progress_args=(
-                                    '**`Uploading document...`**\n',
-                                    edit,
-                                    time.time(),
-                                    file,
-                                    msg_link
-                                    )
-                                )
-                        
-                        if msg.pinned_message:
-                            try:
-                                await safe_repo.pin(both_sides=True)
-                            except Exception as e:
-                                await safe_repo.pin()
-                        sent_success = True
-                    except Exception as e:
-                        sent_success = False
-                        logger.error(f"Error uploading document: {e}")
-                        await app.edit_message_text(sender, edit_id, f"Error uploading document: {str(e)}")
-                    
-                    # Copy to LOG_GROUP if needed
-                    if sent_success:
-                        try:
-                            if target_chat_id != LOG_GROUP:
-                                await safe_repo.copy(LOG_GROUP)
-                        except Exception as e:
-                            logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                    
-                    # Show success message with filename
-                    try:
-                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
-                    except Exception:
-                        pass
-                    
-                    os.remove(file)
-                else:
-                    await edit.edit("**`Uploading media...`**\nRadhey")
-                    thumb_path = thumbnail(chatx)
-                    delete_words = load_delete_words(sender)
-                    custom_caption = get_user_caption_preference(sender)
-                    original_caption = msg.caption if msg.caption else ''
-                    final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
-                    lines = final_caption.split('\n')
-                    processed_lines = []
-                    for line in lines:
-                        for word in delete_words:
-                            line = line.replace(word, '')
-                        if line.strip():
-                            processed_lines.append(line.strip())
-                    final_caption = '\n'.join(processed_lines)
-                    replacements = load_replacement_words(chatx)
-                    for word, replace_word in replacements.items():
-                        final_caption = final_caption.replace(word, replace_word)
-                    caption = f"{final_caption}\n\n__**{custom_caption}**__\nRadhey" if custom_caption else f"{final_caption}\nRadhey"
+        try:
+            if msg.document.mime_type == "application/pdf":
+                safe_repo = await app.send_document(
+                    chat_id=target_chat_id,
+                    document=file,
+                    caption=caption,
+                    thumb=thumb_path,
+                    progress=progress_bar,
+                    progress_args=(
+                        '**`Uploading PDF...`**\n',
+                        edit,
+                        time.time(),
+                        file,
+                        msg_link
+                    )
+                )
+            else:
+                safe_repo = await app.send_document(
+                    chat_id=target_chat_id,
+                    document=file,
+                    caption=caption,
+                    thumb=thumb_path,
+                    progress=progress_bar,
+                    progress_args=(
+                        '**`Uploading document...`**\n',
+                        edit,
+                        time.time(),
+                        file,
+                        msg_link
+                    )
+                )
+            sent_success = True
 
-                    target_chat_id = user_chat_ids.get(chatx, chatx)
-                    
-                    # Upload to target chat
-                    try:
-                        safe_repo = await app.send_document(
-                            chat_id=target_chat_id,
-                            document=file,
-                            caption=caption,
-                            thumb=thumb_path,
-                            progress=progress_bar,
-                            progress_args=(
-                                '**`Uploading...`**\n',
-                                edit,
-                                time.time(),
-                                file,
-                                msg_link
-                                )
-                            )
-                        if msg.pinned_message:
-                            try:
-                                await safe_repo.pin(both_sides=True)
-                            except Exception as e:
-                                await safe_repo.pin()
-                        sent_success = True
-                    except Exception as e:
-                        sent_success = False
-                        logger.error(f"Error uploading media: {e}")
-                        await app.edit_message_text(sender, edit_id, f"Error uploading media: {str(e)}")
-                    
-                    # Copy to LOG_GROUP if needed
-                    if sent_success:
-                        try:
-                            if target_chat_id != LOG_GROUP:
-                                await safe_repo.copy(LOG_GROUP)
-                        except Exception as e:
-                            logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                    
-                    # Show success message with filename
-                    try:
-                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
-                    except Exception:
-                        pass
-                    
-                    os.remove(file)
+            if msg.pinned_message:
+                try:
+                    await safe_repo.pin(both_sides=True)
+                except Exception:
+                    await safe_repo.pin()
+        except Exception as e:
+            sent_success = False
+            logger.error(f"Error uploading document: {e}")
+            await app.edit_message_text(sender, edit_id, f"Error uploading document: {str(e)}")
+
+        if sent_success:
+            try:
+                if target_chat_id != LOG_GROUP:
+                    await safe_repo.copy(LOG_GROUP)
+            except Exception as e:
+                logger.error(f"Failed to copy to LOG_GROUP: {e}")
+
+        try:
+            await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
+        except Exception:
+            pass
+
+        os.remove(file)
+     else:
+        await edit.edit("**`Uploading media...`**\nRadhey")
+        thumb_path = thumbnail(chatx)
+        delete_words = load_delete_words(sender)
+        custom_caption = get_user_caption_preference(sender)
+        original_caption = msg.caption if msg.caption else ''
+        final_caption = custom_caption if custom_caption else original_caption
+        lines = final_caption.split('\n')
+        processed_lines = []
+        for line in lines:
+            for word in delete_words:
+                line = line.replace(word, '')
+            if line.strip():
+                processed_lines.append(line.strip())
+        final_caption = '\n'.join(processed_lines)
+        replacements = load_replacement_words(chatx)
+        for word, replace_word in replacements.items():
+            final_caption = final_caption.replace(word, replace_word)
+        caption = f"{final_caption}\nRadhey"
+
+        target_chat_id = user_chat_ids.get(chatx, chatx)
+
+        try:
+            safe_repo = await app.send_document(
+                chat_id=target_chat_id,
+                document=file,
+                caption=caption,
+                thumb=thumb_path,
+                progress=progress_bar,
+                progress_args=(
+                    '**`Uploading...`**\n',
+                    edit,
+                    time.time(),
+                    file,
+                    msg_link
+                )
+            )
+            if msg.pinned_message:
+                try:
+                    await safe_repo.pin(both_sides=True)
+                except Exception:
+                    await safe_repo.pin()
+            sent_success = True
+        except Exception as e:
+            sent_success = False
+            logger.error(f"Error uploading media: {e}")
+            await app.edit_message_text(sender, edit_id, f"Error uploading media: {str(e)}")
+
+        if sent_success:
+            try:
+                if target_chat_id != LOG_GROUP:
+                    await safe_repo.copy(LOG_GROUP)
+            except Exception as e:
+                logger.error(f"Failed to copy to LOG_GROUP: {e}")
+
+        try:
+            await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
+        except Exception:
+            pass
+
+        os.remove(file)
                             
                 await edit.delete()
             
@@ -324,6 +332,8 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message, is_batch=False
                 await edit.delete()
             except Exception as e:
                 await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
+    except Exception as e:
+        logger.error(f"Unexpected error in get_msg: {e}")
     finally:
         # Cleanup any temporary files
         try:
@@ -353,7 +363,7 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
         # Modify the caption based on user's custom caption preference
         custom_caption = get_user_caption_preference(sender)
         original_caption = msg.caption if msg.caption else ''
-        final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+        final_caption = custom_caption if custom_caption else original_caption
         
         delete_words = load_delete_words(sender)
         for word in delete_words:
@@ -362,8 +372,8 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
         replacements = load_replacement_words(sender)
         for word, replace_word in replacements.items():
             final_caption = final_caption.replace(word, replace_word)
-        
-        caption = f"{final_caption}\n\n__**{custom_caption}**__\nRadhey" if custom_caption else f"{final_caption}\nRadhey"
+
+        caption = f"{final_caption}\nRadhey"
         
         if msg.media:
             if msg.media == MessageMediaType.VIDEO:
