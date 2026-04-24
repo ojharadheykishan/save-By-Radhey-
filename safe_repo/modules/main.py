@@ -331,6 +331,7 @@ async def batch_link(_, message):
                 return await app.send_message(message.chat.id, "Failed to start session. Please try again.")
         else:
             await app.send_message(message.chat.id, "Login in bot first ...")
+            return
 
         try:
             users_loop[user_id] = True
