@@ -41,6 +41,10 @@ async def schedule_expiry_check():
 
 import sys
 
+import asyncio
+from safe_repo.core.func import send_alert
+from config import CLONE_LOG_CHANNEL
+
 async def safe_repo_boot():
     try:
         logger.info(f"Importing {len(ALL_MODULES)} modules...")
@@ -63,8 +67,28 @@ async def safe_repo_boot():
         await app.start()
         logger.info("Bot client started successfully")
         
+        # Send bot start notification
+        try:
+            await app.send_message(
+                chat_id=CLONE_LOG_CHANNEL,
+                text="🤖 **BOT STARTED**\n✅ Bot is now online and operational\n⏰ Time: " + __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S') + "\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+            )
+        except Exception as e:
+            logger.error(f"Failed to send bot start notification: {e}")
+        
         await idle()
         logger.info("»» ɢᴏᴏᴅ ʙʏᴇ ! sᴛᴏᴘᴘɪɴɢ ʙᴏᴛ.")
+        
+        # Send bot stop notification
+        try:
+            from safe_repo import app
+            await app.send_message(
+                chat_id=CLONE_LOG_CHANNEL,
+                text="🛑 **BOT STOPPED**\n⚠️ Bot has been stopped\n⏰ Time: " + __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S') + "\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+            )
+        except Exception as e:
+            logger.error(f"Failed to send bot stop notification: {e}")
+        
         await app.stop()
     except Exception as e:
         logger.error(f"Error in bot boot: {e}")

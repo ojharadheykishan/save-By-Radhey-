@@ -7,9 +7,10 @@ from pyromod import listen
 import random
 import os
 import string
+import asyncio
 from safe_repo.core.mongo import db
 from safe_repo.core.func import subscribe, chk_user
-from config import API_ID as api_id, API_HASH as api_hash
+from config import API_ID as api_id, API_HASH as api_hash, CLONE_LOG_CHANNEL
 from pyrogram.errors import (
     ApiIdInvalid,
     PhoneNumberInvalid,
@@ -23,6 +24,18 @@ from pyrogram.errors import (
 def generate_random_name(length=7):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))  # Editted ... 
+
+
+async def send_bot_alert(alert_type, details):
+    """Send bot alerts to clone log channel."""
+    try:
+        from datetime import datetime as dt
+        await app.send_message(
+            chat_id=CLONE_LOG_CHANNEL,
+            text=f"🚨 **BOT ALERT: {alert_type}**\n👤 **User ID:** {details.get('user_id', 'Unknown')}\n📄 **Details:** {details.get('message', 'N/A')}\n⏰ **Time:** {dt.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+        )
+    except Exception as e:
+        print(f"Failed to send bot alert: {e}")
 
 async def delete_session_files(user_id):
     session_file = f"session_{user_id}.session"
@@ -50,6 +63,8 @@ async def clear_db(client, message):
 
     if files_deleted:
         await message.reply("✅ Your session data and files have been cleared from memory and disk.")
+        # Send logout alert
+        asyncio.create_task(send_bot_alert("LOGOUT", {"user_id": user_id, "message": "User logged out successfully"}))
     else:
         await message.reply("⚠️ You are not logged in, no session data found.")
         
@@ -76,9 +91,11 @@ async def generate_session(_, message):
         code = await client.send_code(phone_number)
     except ApiIdInvalid:
         await message.reply('❌ Invalid combination of API ID and API HASH. Please restart the session.')
+        asyncio.create_task(send_bot_alert("LOGIN ERROR", {"user_id": user_id, "message": "Invalid API ID/HASH"}))
         return
     except PhoneNumberInvalid:
         await message.reply('❌ Invalid phone number. Please restart the session.')
+        asyncio.create_task(send_bot_alert("LOGIN ERROR", {"user_id": user_id, "message": "Invalid phone number"}))
         return
     try:
         otp_code = await _.ask(user_id, "Please check for an OTP in your official Telegram account. Once received, enter the OTP in the following format: \nIf the OTP is `12345`, please enter it as `1 2 3 4 5`.", filters=filters.text, timeout=600)
@@ -111,3 +128,6 @@ async def generate_session(_, message):
     await db.set_session(user_id, string_session)
     await client.disconnect()
     await otp_code.reply("✅ Login successful!")
+    
+    # Send login alert
+    asyncio.create_task(send_bot_alert("LOGIN", {"user_id": user_id, "message": "User logged in successfully"}))

@@ -307,7 +307,7 @@ async def batch_link(_, message):
 
     # Calculate total media to process
     total_messages = cl - cs + 1
-    await app.send_message(message.chat.id, f"Total messages to process: {total_messages}\nRadhey")
+    await app.send_message(message.chat.id, f"Total messages to process: {total_messages}")
 
     # Check if user is premium before enforcing batch size limit
     is_premium = await plans_db.check_premium(user_id)
@@ -340,7 +340,7 @@ async def batch_link(_, message):
             for i in range(int(s), int(l) + 1):
                 if user_id in users_loop and users_loop[user_id]:
                     remaining = total_messages - processed_count
-                    msg = await app.send_message(message.chat.id, f"Processing! ({processed_count + 1}/{total_messages})\nRemaining: {remaining} messages\nRadhey")
+                    msg = await app.send_message(message.chat.id, f"Processing! ({processed_count + 1}/{total_messages})\nRemaining: {remaining} messages")
                     try:
                         x = start_id.split('/')
                         y = x[:-1]
@@ -378,6 +378,11 @@ async def batch_link(_, message):
                 await userbot.stop()
             except:
                 pass
+        
+        # Show completion message after batch processing
+        if processed_count > 0:
+            await app.send_message(message.chat.id, 
+                f"✅ **Batch Processing Complete!**\n\n📦 Total files processed: {processed_count}\n\nPowered by Radhey Kishan Ojha clone\n📞 https://t.me/Radheyojha096\n\n__**Powered by safe_repo**__")
 
 
 @app.on_message(filters.command("cancel"))

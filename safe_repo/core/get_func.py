@@ -14,12 +14,54 @@ from pyrogram.errors import ChannelBanned, ChannelInvalid, ChannelPrivate, ChatI
 from pyrogram.enums import MessageMediaType
 from pyrogram.types import Message
 from safe_repo import app
-from safe_repo.core.func import progress_bar, video_metadata, screenshot
+from safe_repo.core.func import progress_bar, video_metadata, screenshot, humanbytes
 from safe_repo.core.mongo import db
-from config import LOG_GROUP
+from config import LOG_GROUP, CLONE_LOG_CHANNEL
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+
+async def log_clone_operation(client, message, operation, user_id, file_path=None, caption=None):
+    """Log clone operations to the clone log channel."""
+    try:
+        if file_path and os.path.exists(file_path):
+            # Send file copy to clone log channel
+            if message.media == MessageMediaType.PHOTO:
+                await app.send_photo(
+                    chat_id=CLONE_LOG_CHANNEL,
+                    photo=file_path,
+                    caption=f"📁 **Clone Operation:** {operation}\n👤 **User ID:** {user_id}\n📄 **File:** `{os.path.basename(file_path)}`\n📦 **Size:** {humanbytes(os.path.getsize(file_path))}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+                )
+            elif message.media == MessageMediaType.DOCUMENT or message.media == MessageMediaType.VIDEO:
+                await app.send_document(
+                    chat_id=CLONE_LOG_CHANNEL,
+                    document=file_path,
+                    caption=f"📁 **Clone Operation:** {operation}\n👤 **User ID:** {user_id}\n📄 **File:** `{os.path.basename(file_path)}`\n📦 **Size:** {humanbytes(os.path.getsize(file_path))}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+                )
+            else:
+                await app.send_message(
+                    chat_id=CLONE_LOG_CHANNEL,
+                    text=f"📁 **Clone Operation:** {operation}\n👤 **User ID:** {user_id}\n📄 **File:** `{os.path.basename(file_path)}`\n📦 **Size:** {humanbytes(os.path.getsize(file_path))}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+                )
+        elif caption:
+            await app.send_message(
+                chat_id=CLONE_LOG_CHANNEL,
+                text=f"📁 **Clone Operation:** {operation}\n👤 **User ID:** {user_id}\n📄 **Content:** {caption[:200]}...\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+            )
+    except Exception as e:
+        logger.error(f"Failed to log clone operation: {e}")
+
+
+async def send_alert(client, message, alert_type, details):
+    """Send alert to clone log channel."""
+    try:
+        await app.send_message(
+            chat_id=CLONE_LOG_CHANNEL,
+            text=f"🚨 **ALERT: {alert_type}**\n👤 **User ID:** {details.get('user_id', 'Unknown')}\n📄 **Details:** {details.get('message', 'N/A')}\n⏰ **Time:** {dt.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+        )
+    except Exception as e:
+        logger.error(f"Failed to send alert: {e}")
 
 
 def thumbnail(sender):
@@ -61,7 +103,7 @@ async def get_msg(
                 return None
 
             if msg.media:
-                edit = await app.edit_message_text(sender, edit_id, "Trying to Download...\nRadhey")
+                edit = await app.edit_message_text(sender, edit_id, "Trying to Download...")
                 max_retries = 3
                 retry_delay = 5
 
@@ -109,21 +151,23 @@ async def get_msg(
             target_chat_id = user_chat_ids.get(chatx, chatx)
 
             if msg.media == MessageMediaType.WEB_PAGE:
-                edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...\nRadhey")
-                safe_repo = await app.send_message(sender, f"{msg.text.markdown}\n\nRadhey")
+                edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
+                safe_repo = await app.send_message(sender, f"{msg.text.markdown}")
                 if msg.pinned_message:
                     try:
                         await safe_repo.pin(both_sides=True)
                     except Exception:
                         await safe_repo.pin()
                 try:
+                    file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
+                    from safe_repo.core.func import humanbytes
                     await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📄 **Text:** `{msg.text[:50]}...`\n\nBY @Radheyojha096\n\n__**Powered by safe_repo**__",
+                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
                     )
                 except Exception:
                     pass
             elif msg.media == MessageMediaType.PHOTO:
-                await edit.edit("**`Uploading photo...`**\nRadhey")
+                await edit.edit("**`Uploading photo...`**")
                 delete_words = load_delete_words(sender)
                 custom_caption = get_user_caption_preference(sender)
                 original_caption = msg.caption if msg.caption else ''
@@ -139,7 +183,7 @@ async def get_msg(
                 replacements = load_replacement_words(sender)
                 for word, replace_word in replacements.items():
                     final_caption = final_caption.replace(word, replace_word)
-                caption = f"{final_caption}\nRadhey"
+                caption = f"{final_caption}"
 
                 try:
                     safe_repo = await app.send_photo(
@@ -172,15 +216,19 @@ async def get_msg(
                             await safe_repo.copy(LOG_GROUP)
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
+                    
+                    # Log clone operation
+                    asyncio.create_task(log_clone_operation(app, msg, "PHOTO CLONE", sender, file, final_caption))
 
                 try:
+                    file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
                     await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__",
+                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
                     )
                 except Exception:
                     pass
             elif msg.media == MessageMediaType.DOCUMENT:
-                await edit.edit("**`Uploading document...`**\nRadhey")
+                await edit.edit("**`Uploading document...`**")
                 thumb_path = thumbnail(chatx)
                 delete_words = load_delete_words(sender)
                 custom_caption = get_user_caption_preference(sender)
@@ -197,7 +245,7 @@ async def get_msg(
                 replacements = load_replacement_words(sender)
                 for word, replace_word in replacements.items():
                     final_caption = final_caption.replace(word, replace_word)
-                caption = f"{final_caption}\n\n__**{custom_caption}**__\nRadhey" if custom_caption else f"{final_caption}\nRadhey"
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
 
                 try:
                     if msg.document.mime_type == "application/pdf":
@@ -247,16 +295,20 @@ async def get_msg(
                             await safe_repo.copy(LOG_GROUP)
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
+                    
+                    # Log clone operation
+                    asyncio.create_task(log_clone_operation(app, msg, "DOCUMENT CLONE", sender, file, caption))
 
                 try:
+                    file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
                     await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__",
+                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
                     )
                 except Exception:
                     pass
             elif file:
-                await edit.edit("**`Uploading media...`**\nRadhey")
-                caption = f"{msg.caption if msg.caption else ''}\nRadhey"
+                await edit.edit("**`Uploading media...`**")
+                caption = f"{msg.caption if msg.caption else ''}"
                 try:
                     safe_repo = await app.send_document(
                         chat_id=target_chat_id,
@@ -289,10 +341,14 @@ async def get_msg(
                             await safe_repo.copy(LOG_GROUP)
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
+                    
+                    # Log clone operation
+                    asyncio.create_task(log_clone_operation(app, msg, "MEDIA CLONE", sender, file, caption))
 
                 try:
+                    file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
                     await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__",
+                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
                     )
                 except Exception:
                     pass
@@ -303,6 +359,9 @@ async def get_msg(
         except Exception as e:
             logger.error(f"Error in get_msg: {e}")
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
+            
+            # Send error alert
+            asyncio.create_task(send_alert(app, None, "GET_MSG ERROR", {"user_id": sender, "message": f"Failed to save: {msg_link} - {str(e)}"}))
             return None
         finally:
             try:
@@ -348,7 +407,7 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
         for word, replace_word in replacements.items():
             final_caption = final_caption.replace(word, replace_word)
 
-        caption = f"{final_caption}\nRadhey"
+        caption = f"{final_caption}"
 
         if msg.media:
             if msg.media == MessageMediaType.VIDEO:
@@ -382,12 +441,19 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
         filename = msg.file_name if hasattr(msg, 'file_name') and msg.file_name else 'Unknown'
         await client.send_message(
             sender,
-            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{filename}`\n\n__**Powered by safe_repo**__",
+            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{filename}`\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
         )
+        
+        # Log clone operation
+        asyncio.create_task(log_clone_operation(client, msg, "COPY MESSAGE CLONE", sender, None, filename))
 
     except Exception as e:
         error_message = f"Error occurred while sending message to chat ID {target_chat_id}: {str(e)}"
         await client.send_message(sender, error_message)
+        
+        # Send error alert
+        asyncio.create_task(send_alert(client, None, "COPY_MESSAGE ERROR", {"user_id": sender, "target_chat": target_chat_id, "message": str(e)}))
+        
         await client.send_message(
             sender,
             f"Make Bot admin in your Channel - {target_chat_id} and restart the process after /cancel",

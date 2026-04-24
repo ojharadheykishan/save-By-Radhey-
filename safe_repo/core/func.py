@@ -103,7 +103,9 @@ PROGRESS_BAR = (
     "🎨 Theme: {theme}\n\n"
     "💬 {extra_title}:\n"
     "\"{extra_line1}\"\n"
-    "\"{extra_line2}\"\n"
+    "\"{extra_line2}\"\n\n"
+    "By Radhey Kishan Ojha\n"
+    "📞 https://t.me/Radheyojha096\n\n"
     "__Powered by safe_repo__"
 )
 
@@ -184,8 +186,25 @@ def choose_status(ud_type: str, percentage: float) -> str:
     return random.choice(STATUS_STATES)
 
 
+# Track used extra lines to avoid repeats
+_used_extra_indices = set()
+
 def choose_extra_text() -> tuple[str, str, str]:
-    title, label, line1, line2 = random.choice(EXTRA_LINES)
+    """Choose a random extra text (joke/shayari/motivation) without repeating."""
+    global _used_extra_indices
+    
+    # If all have been used, reset the set
+    if len(_used_extra_indices) >= len(EXTRA_LINES):
+        _used_extra_indices.clear()
+    
+    # Get available indices that haven't been used
+    available_indices = [i for i in range(len(EXTRA_LINES)) if i not in _used_extra_indices]
+    
+    # Pick a random one from available
+    chosen_idx = random.choice(available_indices)
+    _used_extra_indices.add(chosen_idx)
+    
+    title, label, line1, line2 = EXTRA_LINES[chosen_idx]
     return label, line1, line2
 
 
@@ -269,7 +288,8 @@ async def show_completion_ui(message, file_path, total_time, file_size):
 ⚡ **Total Time:** {convert(int(total_time))}
 🎉 **Ready to Open**
 
-💝 **BY @Radheyojha096**
+By Radhey Kishan Ojha
+📞 https://t.me/Radheyojha096
 
 __**Powered by safe_repo**__
 """

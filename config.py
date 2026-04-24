@@ -6,6 +6,7 @@ API_ID = 26704085
 BOT_TOKEN = "8564747078:AAHhc3VIy9uuEbqpqgahxYxBXGajFyzIFnE"
 CHANNEL_ID = -1003818713803
 LOG_GROUP = -1005121908460
+CLONE_LOG_CHANNEL = -1003886456761
 # Owner(s) of the bot. Keep as a list for filters.user compatibility.
 OWNER_ID = [8552899459]
 
