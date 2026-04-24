@@ -92,9 +92,7 @@ async def get_msg(
                             await app.edit_message_text(
                                 sender,
                                 edit_id,
-                                f"Download failed: {
-    str(e)}. Attempt {
-        attempt + 1}/{max_retries}..."
+                                 f"Download failed: {str(e)}. Attempt {attempt + 1}/{max_retries}..."
                             )
                             if attempt < max_retries - 1:
                                 await asyncio.sleep(retry_delay)
@@ -105,7 +103,7 @@ async def get_msg(
                             edit_id,
                             "Failed to download media after multiple attempts. Please try again later."
                         )
-                        return
+        return
 
                     new_file_name = os.path.basename(file)
 
@@ -162,11 +160,11 @@ async def get_msg(
                         # Copy to LOG_GROUP if needed
                         if sent_success:
                             try:
-                                if target_chat_id != LOG_GROUP:
-                                    await safe_repo.copy(LOG_GROUP)
-                            except Exception as e:
+                             if target_chat_id != LOG_GROUP:
+                                 await safe_repo.copy(LOG_GROUP)
+                        except Exception as e:
                                 logger.error(
-    f"Failed to copy to LOG_GROUP: {e}")
+                                f"Failed to copy to LOG_GROUP: {e}")
 
                         # Show success message with filename
                         try:
@@ -245,11 +243,11 @@ async def get_msg(
                                                     try:
                                                         if target_chat_id != LOG_GROUP:
                                                             await safe_repo.copy(LOG_GROUP)
-                                                    except Exception as e:
+                                                except Exception as e:
                                                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
                                         
                                                 try:
-                                                    await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
+                                                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
                                                 except Exception:
                                                     pass
                                         
@@ -299,26 +297,26 @@ async def get_msg(
                                                     sent_success = True
                         except Exception as e:
                             sent_success = False
-                            logger.error(f"Error uploading media: {e}")
-                            await app.edit_message_text(sender, edit_id, f"Error uploading media: {str(e)}")
-                                         if sent_success:
-                        try:
+                                                    logger.error(f"Error uploading media: {e}")
+                                                    await app.edit_message_text(sender, edit_id, f"Error uploading media: {str(e)}")
+                                                if sent_success:
+                                                    try:
                             if target_chat_id != LOG_GROUP:
                                 await safe_repo.copy(LOG_GROUP)
-                        except Exception as e:
-                            logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                                     try:
-                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
-                    except Exception:
-                        pass
-                                     os.remove(file)
+                            except Exception as e:
+                                                        logger.error(f"Failed to copy to LOG_GROUP: {e}")
+                                                    try:
+                                                        await edit.edit(f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n\n__**Powered by safe_repo**__")
+                                                    except Exception:
+                                                        pass
+                                                    os.remove(file)
                                      await edit.delete()
-                     except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
-                await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
-                return
-            except Exception as e:
-                await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')       
-        else:
+    except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
+            await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
+        return
+    except Exception as e:
+        await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')       
+    else:
             edit = await app.edit_message_text(sender, edit_id, "Cloning...")
             try:
                 chat = msg_link.split("/")[-2]
@@ -326,8 +324,6 @@ async def get_msg(
                 await edit.delete()
             except Exception as e:
                 await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
-    except Exception as e:
-        logger.error(f"Unexpected error in get_msg: {e}")
     finally:
         # Cleanup any temporary files
         try:
