@@ -12,7 +12,7 @@ from config import OWNER_ID
 buttons = InlineKeyboardMarkup(
     [
         [InlineKeyboardButton("Help", callback_data='show_help'), InlineKeyboardButton("Settings", callback_data='show_settings')],
-        [InlineKeyboardButton("Join Channel", url="https://t.me/safe_repo")],
+        [InlineKeyboardButton("Join Channel", url="https://t.me/radheyojha9")],
         [InlineKeyboardButton("Buy Premium", url="https://t.me/safe_repo_bot")]
     ]
 )
