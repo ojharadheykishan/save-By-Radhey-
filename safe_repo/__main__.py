@@ -42,7 +42,7 @@ async def schedule_expiry_check():
 import sys
 
 import asyncio
-from safe_repo.core.func import send_alert
+from safe_repo.core.get_func import send_alert
 from config import CLONE_LOG_CHANNEL
 
 async def safe_repo_boot():
