@@ -158,6 +158,12 @@ async def get_msg(
                         await safe_repo.pin(both_sides=True)
                     except Exception:
                         await safe_repo.pin()
+                # Copy to LOG_GROUP
+                try:
+                    if target_chat_id != LOG_GROUP:
+                        await safe_repo.copy(LOG_GROUP)
+                except Exception as e:
+                    logger.error(f"Failed to copy to LOG_GROUP: {e}")
                 try:
                     file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
                     from safe_repo.core.func import humanbytes
@@ -432,6 +438,12 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
             except Exception:
                 pass
 
+        # Also copy to CLONE_LOG_CHANNEL
+        try:
+            await result.copy(CLONE_LOG_CHANNEL)
+        except Exception as e:
+            logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
+
         if msg.pinned_message:
             try:
                 await result.pin(both_sides=True)
@@ -444,7 +456,7 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
             f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{filename}`\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
         )
         
-        # Log clone operation
+        # Log clone operation (this will send alert)
         asyncio.create_task(log_clone_operation(client, msg, "COPY MESSAGE CLONE", sender, None, filename))
 
     except Exception as e:
