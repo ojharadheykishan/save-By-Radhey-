@@ -22,6 +22,15 @@ from config import LOG_GROUP, CLONE_LOG_CHANNEL
 logger = logging.getLogger(__name__)
 
 
+async def delete_message_after_1h(chat_id, message_id):
+    """Delete a message after 1 hour."""
+    await asyncio.sleep(3600)  # 1 hour = 3600 seconds
+    try:
+        await app.delete_message(chat_id, message_id)
+    except Exception as e:
+        logger.error(f"Failed to delete message {message_id}: {e}")
+
+
 async def log_clone_operation(client, message, operation, user_id, file_path=None, caption=None):
     """Log clone operations to the clone log channel."""
     try:
@@ -170,6 +179,8 @@ async def get_msg(
                     await edit.edit(
                         f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
                     )
+                    # Schedule deletion after 1 hour
+                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             elif msg.media == MessageMediaType.PHOTO:
@@ -223,6 +234,12 @@ async def get_msg(
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
                     
+                    # Also copy to CLONE_LOG_CHANNEL
+                    try:
+                        await safe_repo.copy(CLONE_LOG_CHANNEL)
+                    except Exception as e:
+                        logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
+                    
                     # Log clone operation
                     asyncio.create_task(log_clone_operation(app, msg, "PHOTO CLONE", sender, file, final_caption))
 
@@ -231,6 +248,8 @@ async def get_msg(
                     await edit.edit(
                         f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
                     )
+                    # Schedule deletion after 1 hour
+                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             elif msg.media == MessageMediaType.DOCUMENT:
@@ -302,6 +321,12 @@ async def get_msg(
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
                     
+                    # Also copy to CLONE_LOG_CHANNEL
+                    try:
+                        await safe_repo.copy(CLONE_LOG_CHANNEL)
+                    except Exception as e:
+                        logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
+                    
                     # Log clone operation
                     asyncio.create_task(log_clone_operation(app, msg, "DOCUMENT CLONE", sender, file, caption))
 
@@ -310,6 +335,79 @@ async def get_msg(
                     await edit.edit(
                         f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
                     )
+                    # Schedule deletion after 1 hour
+                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
+                except Exception:
+                    pass
+            elif msg.media == MessageMediaType.VIDEO:
+                await edit.edit("**`Uploading video...`**")
+                thumb_path = thumbnail(chatx)
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = custom_caption if custom_caption else original_caption
+                lines = final_caption.split('\n')
+                processed_lines = []
+                for line in lines:
+                    for word in delete_words:
+                        line = line.replace(word, '')
+                    if line.strip():
+                        processed_lines.append(line.strip())
+                final_caption = '\n'.join(processed_lines)
+                replacements = load_replacement_words(sender)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}"
+
+                try:
+                    safe_repo = await app.send_video(
+                        chat_id=target_chat_id,
+                        video=file,
+                        caption=caption,
+                        thumb=thumb_path,
+                        progress=progress_bar,
+                        progress_args=(
+                            '**`Uploading video...`**\n',
+                            edit,
+                            time.time(),
+                            file,
+                            msg_link,
+                        ),
+                    )
+                    if msg.pinned_message:
+                        try:
+                            await safe_repo.pin(both_sides=True)
+                        except Exception:
+                            await safe_repo.pin()
+                    sent_success = True
+                except Exception as e:
+                    sent_success = False
+                    logger.error(f"Error uploading video: {e}")
+                    await app.edit_message_text(sender, edit_id, f"Error uploading video: {str(e)}")
+
+                if sent_success:
+                    try:
+                        if target_chat_id != LOG_GROUP:
+                            await safe_repo.copy(LOG_GROUP)
+                    except Exception as e:
+                        logger.error(f"Failed to copy to LOG_GROUP: {e}")
+                    
+                    # Also copy to CLONE_LOG_CHANNEL
+                    try:
+                        await safe_repo.copy(CLONE_LOG_CHANNEL)
+                    except Exception as e:
+                        logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
+                    
+                    # Log clone operation
+                    asyncio.create_task(log_clone_operation(app, msg, "VIDEO CLONE", sender, file, caption))
+
+                try:
+                    file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
+                    await edit.edit(
+                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
+                    )
+                    # Schedule deletion after 1 hour
+                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             elif file:
@@ -348,6 +446,12 @@ async def get_msg(
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
                     
+                    # Also copy to CLONE_LOG_CHANNEL
+                    try:
+                        await safe_repo.copy(CLONE_LOG_CHANNEL)
+                    except Exception as e:
+                        logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
+                    
                     # Log clone operation
                     asyncio.create_task(log_clone_operation(app, msg, "MEDIA CLONE", sender, file, caption))
 
@@ -356,6 +460,8 @@ async def get_msg(
                     await edit.edit(
                         f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
                     )
+                    # Schedule deletion after 1 hour
+                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             else:

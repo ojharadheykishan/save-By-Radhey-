@@ -106,7 +106,7 @@ PROGRESS_BAR = (
     "\"{extra_line2}\"\n\n"
     "By Radhey Kishan Ojha\n"
     "📞 https://t.me/Radheyojha096\n\n"
-    "__Powered by safe_repo__"
+    "__Powered by Radhey kishan Ojha"
 )
 
 THEME_STYLES = [

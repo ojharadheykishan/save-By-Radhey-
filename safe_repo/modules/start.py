@@ -5,7 +5,10 @@ from safe_repo import app
 from safe_repo.core import script
 from safe_repo.core.func import subscribe
 from safe_repo.core.mongo import db as mdb
-from config import OWNER_ID
+from safe_repo.core.mongo.plans_db import check_premium, add_premium
+from safe_repo.core.mongo.users_db import add_user, get_user
+from config import OWNER_ID, CLONE_LOG_CHANNEL
+from datetime import datetime, timedelta, timezone
 
 # ------------------- Start-Buttons ------------------- #
 
@@ -22,6 +25,52 @@ async def start(_, message):
     join = await subscribe(_, message)
     if join == 1:
         return
+    
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name or "User"
+    
+    # Check if user is new and give free trial
+    premium_check = await check_premium(user_id)
+    if premium_check is None:
+        # User doesn't have premium, give 15 days free trial
+        expire_date = datetime.now(timezone.utc) + timedelta(days=15)
+        await add_premium(user_id, expire_date)
+        
+        # Add user to users_db if not already
+        user_exists = await get_user(user_id)
+        if not user_exists:
+            await add_user(user_id)
+        
+        # Send welcome message with trial info
+        trial_msg = f"""🎉 **Welcome to Safe Repo Bot!**
+
+👋 Hello {message.from_user.mention}!
+
+You've been granted a **15-day FREE TRIAL** of our premium features! 🚀
+
+⏰ **Trial Expires:** {expire_date.strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+Enjoy full access to all premium features during your trial period.
+
+For any questions, contact support: @Radheyojha096"""
+        
+        await message.reply_text(trial_msg)
+        
+        # Send alert to log channel
+        try:
+            log_msg = f"""🎁 **NEW USER FREE TRIAL**
+
+👤 **User:** {user_name} ({user_id})
+📱 **User ID:** `{user_id}`
+⏰ **Trial Granted:** 15 days
+📅 **Expires:** {expire_date.strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+By Radhey Kishan Ojha
+📞 https://t.me/Radheyojha096"""
+            await app.send_message(chat_id=CLONE_LOG_CHANNEL, text=log_msg)
+        except Exception as e:
+            print(f"Failed to send trial alert: {e}")
+    
     # Check if user has an active session (logged in)
     data = await mdb.get_data(message.from_user.id)
     session = None
