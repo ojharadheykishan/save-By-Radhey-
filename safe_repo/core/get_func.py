@@ -176,11 +176,12 @@ async def get_msg(
                 try:
                     file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
                     from safe_repo.core.func import humanbytes
-                    await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
-                    )
-                    # Schedule deletion after 1 hour
-                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
+                    if not is_batch:
+                        await edit.edit(
+                            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
+                        )
+                        # Schedule deletion after 1 hour
+                        asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             elif msg.media == MessageMediaType.PHOTO:
@@ -245,11 +246,12 @@ async def get_msg(
 
                 try:
                     file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
-                    await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
-                    )
-                    # Schedule deletion after 1 hour
-                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
+                    if not is_batch:
+                        await edit.edit(
+                            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
+                        )
+                        # Schedule deletion after 1 hour
+                        asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             elif msg.media == MessageMediaType.DOCUMENT:
@@ -332,11 +334,12 @@ async def get_msg(
 
                 try:
                     file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
-                    await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
-                    )
-                    # Schedule deletion after 1 hour
-                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
+                    if not is_batch:
+                        await edit.edit(
+                            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
+                        )
+                        # Schedule deletion after 1 hour
+                        asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             elif msg.media == MessageMediaType.VIDEO:
@@ -403,11 +406,12 @@ async def get_msg(
 
                 try:
                     file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
-                    await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
-                    )
-                    # Schedule deletion after 1 hour
-                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
+                    if not is_batch:
+                        await edit.edit(
+                            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
+                        )
+                        # Schedule deletion after 1 hour
+                        asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             elif file:
@@ -457,11 +461,12 @@ async def get_msg(
 
                 try:
                     file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
-                    await edit.edit(
-                        f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
-                    )
-                    # Schedule deletion after 1 hour
-                    asyncio.create_task(delete_message_after_1h(sender, edit.id))
+                    if not is_batch:
+                        await edit.edit(
+                            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
+                        )
+                        # Schedule deletion after 1 hour
+                        asyncio.create_task(delete_message_after_1h(sender, edit.id))
                 except Exception:
                     pass
             else:
@@ -494,14 +499,14 @@ async def get_msg(
         edit = await app.edit_message_text(sender, edit_id, "Cloning...")
         try:
             chat = msg_link.split("/")[-2]
-            await copy_message_with_chat_id(app, sender, chat, msg_id)
+            await copy_message_with_chat_id(app, sender, chat, msg_id, is_batch)
             await edit.delete()
         except Exception as e:
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
         return None
 
 
-async def copy_message_with_chat_id(client, sender, chat_id, message_id):
+async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batch=False):
     target_chat_id = user_chat_ids.get(sender, sender)
 
     try:
@@ -556,11 +561,12 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
             except Exception:
                 await result.pin()
 
-        filename = msg.file_name if hasattr(msg, 'file_name') and msg.file_name else 'Unknown'
-        await client.send_message(
-            sender,
-            f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{filename}`\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
-        )
+        if not is_batch:
+            filename = msg.file_name if hasattr(msg, 'file_name') and msg.file_name else 'Unknown'
+            await client.send_message(
+                sender,
+                f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{filename}`\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
+            )
         
         # Log clone operation (this will send alert)
         asyncio.create_task(log_clone_operation(client, msg, "COPY MESSAGE CLONE", sender, None, filename))
