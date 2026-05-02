@@ -109,6 +109,7 @@ async def get_msg(
             msg = await userbot.get_messages(chat, msg_id)
 
             if msg.service is not None or msg.empty is not None:
+                logger.warning(f"Message {msg_id} in chat {chat} is service or empty")
                 return None
 
             if msg.media:
@@ -149,11 +150,10 @@ async def get_msg(
                         await asyncio.sleep(retry_delay)
 
                 if not file:
-                    await app.edit_message_text(
-                        sender,
-                        edit_id,
-                        "Failed to download media after multiple attempts. Please try again later.",
-                    )
+                    error_msg = "Failed to download media after multiple attempts."
+                    if 't.me/c/' in msg_link or '-100' in str(chat):
+                        error_msg += " For private channels, ensure your logged-in account has access to the channel and the message exists."
+                    await app.edit_message_text(sender, edit_id, error_msg)
                     return None
 
             new_file_name = os.path.basename(file) if file else 'Unknown'
@@ -169,7 +169,7 @@ async def get_msg(
                         await safe_repo.pin()
                 # Copy to LOG_GROUP
                 try:
-                    if target_chat_id != LOG_GROUP:
+                    if target_chat_id != LOG_GROUP and safe_repo:
                         await safe_repo.copy(LOG_GROUP)
                 except Exception as e:
                     logger.error(f"Failed to copy to LOG_GROUP: {e}")
@@ -228,13 +228,13 @@ async def get_msg(
                     logger.error(f"Error uploading photo: {e}")
                     await app.edit_message_text(sender, edit_id, f"Error uploading photo: {str(e)}")
 
-                if sent_success:
+                if sent_success and safe_repo:
                     try:
                         if target_chat_id != LOG_GROUP:
                             await safe_repo.copy(LOG_GROUP)
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                    
+
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
@@ -316,19 +316,19 @@ async def get_msg(
                     logger.error(f"Error uploading document: {e}")
                     await app.edit_message_text(sender, edit_id, f"Error uploading document: {str(e)}")
 
-                if sent_success:
+                if sent_success and safe_repo:
                     try:
                         if target_chat_id != LOG_GROUP:
                             await safe_repo.copy(LOG_GROUP)
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                    
+
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
-                    
+
                     # Log clone operation
                     asyncio.create_task(log_clone_operation(app, msg, "DOCUMENT CLONE", sender, file, caption))
 
@@ -388,19 +388,19 @@ async def get_msg(
                     logger.error(f"Error uploading video: {e}")
                     await app.edit_message_text(sender, edit_id, f"Error uploading video: {str(e)}")
 
-                if sent_success:
+                if sent_success and safe_repo:
                     try:
                         if target_chat_id != LOG_GROUP:
                             await safe_repo.copy(LOG_GROUP)
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                    
+
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
-                    
+
                     # Log clone operation
                     asyncio.create_task(log_clone_operation(app, msg, "VIDEO CLONE", sender, file, caption))
 
@@ -443,19 +443,19 @@ async def get_msg(
                     logger.error(f"Error uploading media: {e}")
                     await app.edit_message_text(sender, edit_id, f"Error uploading media: {str(e)}")
 
-                if sent_success:
+                if sent_success and safe_repo:
                     try:
                         if target_chat_id != LOG_GROUP:
                             await safe_repo.copy(LOG_GROUP)
                     except Exception as e:
                         logger.error(f"Failed to copy to LOG_GROUP: {e}")
-                    
+
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
-                    
+
                     # Log clone operation
                     asyncio.create_task(log_clone_operation(app, msg, "MEDIA CLONE", sender, file, caption))
 
@@ -470,7 +470,10 @@ async def get_msg(
                 except Exception:
                     pass
             else:
-                await app.edit_message_text(sender, edit_id, "No media to upload.")
+                # This should not happen if msg.media is True, but adding debug info
+                media_type = str(msg.media) if msg.media else "None"
+                logger.error(f"No media handling for message {msg_id} in chat {chat}. Media: {media_type}, File: {file}")
+                await app.edit_message_text(sender, edit_id, f"Unsupported media type or processing error. Please try again or contact support.")
                 return None
 
         except Exception as e:
@@ -538,22 +541,23 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batc
         else:
             result = await client.copy_message(target_chat_id, chat_id, message_id)
 
-        if target_chat_id != sender and target_chat_id != LOG_GROUP:
-            try:
-                await result.copy(LOG_GROUP)
-            except Exception:
-                pass
-        elif target_chat_id == sender and sender != LOG_GROUP:
-            try:
-                await result.copy(LOG_GROUP)
-            except Exception:
-                pass
+        if result:
+            if target_chat_id != sender and target_chat_id != LOG_GROUP:
+                try:
+                    await result.copy(LOG_GROUP)
+                except Exception:
+                    pass
+            elif target_chat_id == sender and sender != LOG_GROUP:
+                try:
+                    await result.copy(LOG_GROUP)
+                except Exception:
+                    pass
 
-        # Also copy to CLONE_LOG_CHANNEL
-        try:
-            await result.copy(CLONE_LOG_CHANNEL)
-        except Exception as e:
-            logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
+            # Also copy to CLONE_LOG_CHANNEL
+            try:
+                await result.copy(CLONE_LOG_CHANNEL)
+            except Exception as e:
+                logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
 
         if msg.pinned_message:
             try:
@@ -561,13 +565,14 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batc
             except Exception:
                 await result.pin()
 
+        filename = msg.file_name if hasattr(msg, 'file_name') and msg.file_name else 'Unknown'
+
         if not is_batch:
-            filename = msg.file_name if hasattr(msg, 'file_name') and msg.file_name else 'Unknown'
             await client.send_message(
                 sender,
                 f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{filename}`\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha clone**__",
             )
-        
+
         # Log clone operation (this will send alert)
         asyncio.create_task(log_clone_operation(client, msg, "COPY MESSAGE CLONE", sender, None, filename))
 
