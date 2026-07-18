@@ -276,6 +276,8 @@ async def get_msg(
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
+                        # Extra: post to public stream channel and send user a stream link
+                        asyncio.create_task(share_stream_link(sender, safe_repo))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
                     
@@ -364,6 +366,8 @@ async def get_msg(
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
+                        # Extra: post to public stream channel and send user a stream link
+                        asyncio.create_task(share_stream_link(sender, safe_repo))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
 
@@ -436,6 +440,8 @@ async def get_msg(
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
+                        # Extra: post to public stream channel and send user a stream link
+                        asyncio.create_task(share_stream_link(sender, safe_repo))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
 
@@ -491,6 +497,8 @@ async def get_msg(
                     # Also copy to CLONE_LOG_CHANNEL
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
+                        # Extra: post to public stream channel and send user a stream link
+                        asyncio.create_task(share_stream_link(sender, safe_repo))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
 
@@ -546,6 +554,19 @@ async def get_msg(
         except Exception as e:
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
         return None
+
+
+async def share_stream_link(sender, result_msg):
+    """Extra feature: post the uploaded message to the public stream channel
+    and send the user a MX Player / VLC streamable link. Does not modify any
+    existing upload logic - it only adds an extra message.
+    """
+    try:
+        from safe_repo.modules.stream import send_stream_link
+        if result_msg is not None:
+            asyncio.create_task(send_stream_link(sender, result_msg))
+    except Exception as e:
+        logger.error(f"share_stream_link error: {e}")
 
 
 async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batch=False, thread_id=None):
@@ -605,6 +626,9 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batc
                 await result.copy(CLONE_LOG_CHANNEL)
             except Exception as e:
                 logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
+
+            # Extra: post to public stream channel and send user a stream link
+            asyncio.create_task(share_stream_link(sender, result))
 
         if msg.pinned_message:
             try:
