@@ -63,31 +63,60 @@ def start_bot_process():
     Guard against double-start: if another instance of the bot is already
     running (e.g. a separate Render worker using the same BOT_TOKEN), two
     Pyrogram clients would log in to the same bot and Telegram returns a
-    409 Conflict, making the bot stop responding. We skip launching a second
-    instance here if one is already alive.
+    409 Conflict, making the bot stop responding.
+
+    NOTE: we use a lock file instead of `pgrep` because minimal Docker images
+    (e.g. Render's python:3.10-slim) do not ship `pgrep`, which previously
+    crashed this launcher with FileNotFoundError.
     """
     import subprocess
     import time
+    import os
+    import signal
 
-    # If a bot process is already running, do not spawn a second one.
-    existing = subprocess.run(
-        ["pgrep", "-f", "python3 -m safe_repo"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    if existing.stdout.strip():
-        print("safe_repo bot already running (pid(s): "
-              f"{existing.stdout.strip()}); not starting a duplicate.")
-        return
+    lock_file = "/tmp/safe_repo_bot.lock"
+
+    # If a bot process is already running (lock file with a live PID), do not
+    # spawn a second one.
+    if os.path.exists(lock_file):
+        try:
+            with open(lock_file) as f:
+                old_pid = int(f.read().strip())
+            # Check if that PID is still alive (works without pgrep)
+            os.kill(old_pid, 0)
+            print(f"safe_repo bot already running (pid {old_pid}); "
+                  "not starting a duplicate.")
+            return
+        except (ValueError, ProcessLookupError, PermissionError):
+            # Stale lock file - remove it and continue
+            try:
+                os.remove(lock_file)
+            except Exception:
+                pass
+        except Exception:
+            try:
+                os.remove(lock_file)
+            except Exception:
+                pass
 
     try:
+        # Write our PID to the lock file
+        with open(lock_file, "w") as f:
+            f.write(str(os.getpid()))
+
         print("Starting safe_repo bot process...")
         bot_proc = subprocess.Popen(["python3", "-m", "safe_repo"])
         bot_proc.wait()
         print(f"safe_repo exited with code {bot_proc.returncode}")
     except Exception as e:
         print(f"safe_repo launcher error: {e}")
+    finally:
+        # Clean up lock file on exit
+        try:
+            if os.path.exists(lock_file):
+                os.remove(lock_file)
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
