@@ -14,7 +14,7 @@ from pyrogram.errors import ChannelBanned, ChannelInvalid, ChannelPrivate, ChatI
 from pyrogram.enums import MessageMediaType
 from pyrogram.types import Message
 from safe_repo import app
-from safe_repo.core.func import progress_bar, video_metadata, screenshot, humanbytes
+from safe_repo.core.func import progress_bar, video_metadata, screenshot, humanbytes, parse_telegram_link
 from safe_repo.core.mongo import db
 from config import LOG_GROUP, CLONE_LOG_CHANNEL
 
