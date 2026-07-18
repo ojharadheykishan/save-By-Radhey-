@@ -14,7 +14,11 @@ from pyrogram.errors import ChannelBanned, ChannelInvalid, ChannelPrivate, ChatI
 from pyrogram.enums import MessageMediaType
 from pyrogram.types import Message
 from safe_repo import app
-from safe_repo.core.func import progress_bar, video_metadata, screenshot, humanbytes, parse_telegram_link
+from safe_repo.core.func import (
+    progress_bar, video_metadata, screenshot, humanbytes, parse_telegram_link,
+    clean_link, choose_progress_style, choose_theme, choose_spinner,
+    choose_status, choose_extra_text, convert, get_link, get_seconds,
+)
 from safe_repo.core.mongo import db
 from config import LOG_GROUP, CLONE_LOG_CHANNEL
 
@@ -213,7 +217,6 @@ async def get_msg(
                     logger.error(f"Failed to copy to LOG_GROUP: {e}")
                 try:
                     file_size = os.path.getsize(file) if file and os.path.exists(file) else 0
-                    from safe_repo.core.func import humanbytes
                     if not is_batch:
                         await edit.edit(
                             f"**✅ Uploaded Successfully!**\n\n📁 **File:** `{new_file_name}`\n📦 **Size:** {humanbytes(file_size)}\n\nBy Radhey Kishan Ojha\n📞 https://t.me/Radheyojha096\n\n__**Powered by Radhey Kishan Ojha **__",
