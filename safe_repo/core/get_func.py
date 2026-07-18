@@ -89,16 +89,54 @@ async def get_msg(
     chat = ""
     round_message = False
 
+    # Strip ?single fragment (kept for backwards compatibility)
     if "?single" in msg_link:
         msg_link = msg_link.split("?single")[0]
 
-    msg_id = int(msg_link.split("/")[-1]) + int(i)
+    # Robust parsing that supports supergroup topics/threads, public/private
+    # channels, bot links and stories. Returns (chat, msg_id, thread_id, is_story)
+    parsed_chat, parsed_msg, thread_id, is_story = parse_telegram_link(msg_link)
 
-    if 't.me/c/' in msg_link or 't.me/b/' in msg_link:
-        if 't.me/b/' not in msg_link:
-            chat = int('-100' + str(msg_link.split("/")[-2]))
-        else:
-            chat = msg_link.split("/")[-2]
+    # Stories cannot be downloaded via get_messages; report clearly.
+    if is_story:
+        await app.edit_message_text(
+            sender, edit_id,
+            "📸 **Stories are not supported for download yet.**\n"
+            "Send a normal message link (t.me/c/.../ID or t.me/username/ID)."
+        )
+        return None
+
+    if parsed_chat is None or parsed_msg is None:
+        await app.edit_message_text(
+            sender, edit_id,
+            f"❌ Could not parse link: `{msg_link}`\n"
+            "Make sure it's a valid Telegram message link."
+        )
+        return None
+
+    chat = parsed_chat
+    msg_id = parsed_msg + int(i)
+
+    # Supergroup topic/thread: Pyrogram needs the thread id to fetch the message
+    get_kwargs = {}
+    if thread_id is not None:
+        try:
+            get_kwargs["message_thread_id"] = thread_id
+        except Exception:
+            pass
+
+    # Decide whether to fetch via userbot (private channel / bot link) or
+    # copy via the bot (public chat). Use the parsed result so that both
+    # t.me and telegram.me hosts work identically.
+    is_private = isinstance(parsed_chat, int) or 'telegram.me/c/' in msg_link or 't.me/c/' in msg_link
+    is_bot_link = 'telegram.me/b/' in msg_link or 't.me/b/' in msg_link
+
+    if is_private or is_bot_link:
+        if not isinstance(chat, str):
+            # private channel id already resolved as -100xxxx int
+            pass
+        elif is_bot_link:
+            chat = parsed_chat if parsed_chat else chat
 
         file = None
         thumb_path = None
@@ -106,7 +144,7 @@ async def get_msg(
 
         try:
             chatx = message.chat.id
-            msg = await userbot.get_messages(chat, msg_id)
+            msg = await userbot.get_messages(chat, msg_id, **get_kwargs)
 
             if msg.service is not None or msg.empty is not None:
                 logger.warning(f"Message {msg_id} in chat {chat} is service or empty")
@@ -501,19 +539,28 @@ async def get_msg(
     else:
         edit = await app.edit_message_text(sender, edit_id, "Cloning...")
         try:
-            chat = msg_link.split("/")[-2]
-            await copy_message_with_chat_id(app, sender, chat, msg_id, is_batch)
+            # Use the robust parser result for public links too (handles topics)
+            pub_chat = parsed_chat if parsed_chat is not None else msg_link.split("/")[-2]
+            await copy_message_with_chat_id(app, sender, pub_chat, msg_id, is_batch, thread_id)
             await edit.delete()
         except Exception as e:
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
         return None
 
 
-async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batch=False):
+async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batch=False, thread_id=None):
     target_chat_id = user_chat_ids.get(sender, sender)
 
     try:
-        msg = await client.get_messages(chat_id, message_id)
+        # For supergroup topics/threads, Pyrogram needs the thread id to fetch
+        get_kwargs = {}
+        if thread_id is not None:
+            try:
+                get_kwargs["message_thread_id"] = thread_id
+            except Exception:
+                pass
+
+        msg = await client.get_messages(chat_id, message_id, **get_kwargs)
 
         custom_caption = get_user_caption_preference(sender)
         original_caption = msg.caption if msg.caption else ''

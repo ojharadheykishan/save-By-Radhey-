@@ -93,30 +93,40 @@ async def get_seconds(time_string):
 
 
 PROGRESS_BAR = (
-    "{status}\n"
-    "📁 Name: {filename}\n"
-    "📄 Extension: {extension}\n"
-    "{link_label} {link}\n\n"
-    "{bar} {percent}%\n"
-    "📦 Size: {current}/{total}\n"
-    "⚡ Speed: {speed}/s | ⏳ ETA: {eta}\n"
-    "🎨 Theme: {theme}\n\n"
-    "💬 {extra_title}:\n"
-    "\"{extra_line1}\"\n"
-    "\"{extra_line2}\"\n\n"
-    "By Radhey Kishan Ojha\n"
-    "📞 https://t.me/Radheyojha096\n\n"
-    "__Powered by Radhey kishan Ojha"
+    "╭━━━〔 {status} 〕━━━╮\n"
+    "{spinner} **{theme}** `{percent}%`\n"
+    "┌─ 📁 **Name:** `{filename}`\n"
+    "├─ 📄 **Type:** `{extension}`\n"
+    "├─ {link_label} {link}\n"
+    "├─ 📊 **Progress:**\n"
+    "├─ {bar}\n"
+    "├─ 📦 **Size:** `{current}` / `{total}`\n"
+    "├─ ⚡ **Speed:** `{speed}/s`\n"
+    "├─ ⏳ **ETA:** `{eta}`\n"
+    "├─ 🎯 **Done:** `{percent}%`\n"
+    "╰━━━━━━━━━━━━━━━━━╯\n\n"
+    "💬 **{extra_title}**\n"
+    "_“{extra_line1}”_\n"
+    "_“{extra_line2}”_\n\n"
+    "👤 **By Radhey Kishan Ojha**\n"
+    "📞 [t.me/Radheyojha096](https://t.me/Radheyojha096)\n"
+    "__Powered by safe_repo__"
 )
 
+# Colourful gradient themes: (name, [gradient_filled..., empty])
 THEME_STYLES = [
-    ("Neon Blue", ["🟦", "🟦", "⬜"]),
-    ("Fire Red", ["🟥", "🟧", "🟨", "⬜"]),
-    ("Matrix Green", ["🟩", "⬛", "⚪"]),
-    ("Gold Premium", ["🟨", "🟧", "⬜"]),
-    ("Purple Cyber", ["🟪", "⬜", "⚫"]),
-    ("Rainbow Gradient", ["🌈", "⚪", "⬛"]),
+    ("🔵 Neon Blue",   ["🟦", "🟦", "🟦", "⬜"]),
+    ("🔴 Fire Red",    ["🟥", "🟧", "🟨", "⬜"]),
+    ("🟢 Matrix Green",["🟩", "🟩", "⬜"]),
+    ("🟡 Gold Premium",["🟨", "🟧", "⬜"]),
+    ("🟣 Purple Cyber",["🟪", "🟪", "⬜"]),
+    ("🌈 Rainbow",     ["🟥", "🟧", "🟨", "🟩", "🟦", "🟪", "⬜"]),
+    ("💎 Crystal",     ["🩵", "🩵", "⬜"]),
+    ("🩷 Pink Pop",    ["🩷", "🩷", "⬜"]),
 ]
+
+# Animated spinner frames (rotates every update for a live feel)
+SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
 STATUS_STATES = [
     "📥 Downloading...",
@@ -129,52 +139,70 @@ STATUS_STATES = [
 
 EXTRA_LINES = [
     # Shayari
-    ("Shayari", "💖 Shayari", "Teri yaadon ka safar bhi kamaal hai,", "File download ho ya dil, dono slow hai."),
-    ("Shayari", "💖 Shayari", "Aankhon mein sapne aur file mein speed,", "Dono ko ek saath chalaane ka hai need."),
-    ("Shayari", "💖 Shayari", "Tera har message ek naya rang deta,", "Aur ye download ek naya dil jeet leta."),
-    ("Shayari", "💖 Shayari", "Download ki raahon mein tere khayal,", "Har percent ek naya ehsaas deta hai."),
-    ("Shayari", "💖 Shayari", "File ki tarah teri mohabbat bhi,", "Kabhi tez kabhi halki si beh rahi hai."),
+    ("💖 Shayari", "Teri yaadon ka safar bhi kamaal hai,", "File download ho ya dil, dono slow hai."),
+    ("💖 Shayari", "Aankhon mein sapne aur file mein speed,", "Dono ko ek saath chalaane ka hai need."),
+    ("💖 Shayari", "Tera har message ek naya rang deta,", "Aur ye download ek naya dil jeet leta."),
+    ("💖 Shayari", "Download ki raahon mein tere khayal,", "Har percent ek naya ehsaas deta hai."),
+    ("💖 Shayari", "File ki tarah teri mohabbat bhi,", "Kabhi tez kabhi halki si beh rahi hai."),
 
     # Jokes
-    ("Joke", "😂 Joke", "Internet itna slow hai,", "Snail bhi aage nikal gaya."),
-    ("Joke", "😂 Joke", "Server ne bola \"kuch der aur\",", "Internet ne bola \"abhi aa raha hoon\"."),
-    ("Joke", "😂 Joke", "Ye download itna slow hai,", "Ki purana phone bhi jealous ho gaya."),
-    ("Joke", "😂 Joke", "Network ne mujhe block kar diya,", "Kaha \"zyada download kar raha hai tu\"."),
-    ("Joke", "😂 Joke", "Progress bar ne mujhse kaha,", "\"Boss, main to complete ho gaya, tu ruk kyun raha hai?\""),
+    ("😂 Joke", "Internet itna slow hai,", "Snail bhi aage nikal gaya."),
+    ("😂 Joke", "Server ne bola \"kuch der aur\",", "Internet ne bola \"abhi aa raha hoon\"."),
+    ("😂 Joke", "Ye download itna slow hai,", "Ki purana phone bhi jealous ho gaya."),
+    ("😂 Joke", "Network ne mujhe block kar diya,", "Kaha \"zyada download kar raha hai tu\"."),
+    ("😂 Joke", "Progress bar ne mujhse kaha,", "\"Boss, main to complete ho gaya, tu ruk kyun raha hai?\""),
 
     # Motivation
-    ("Motivation", "🔥 Motivation", "Har percent progress success hai,", "Rukna mat, finish tak jao."),
-    ("Motivation", "🔥 Motivation", "Har byte ek kadam hai,", "Finish line tumhara intezaar kar rahi hai."),
-    ("Motivation", "🔥 Motivation", "Bas thoda aur sabr rakho,", "Jeet finish line ke baad milti hai."),
-    ("Motivation", "🔥 Motivation", "Har challenge ek opportunity hai,", "Har download ek new beginning."),
-    ("Motivation", "🔥 Motivation", "Speed kam hai par determination high,", "Ye journey success ki taraf le jaayegi."),
+    ("🔥 Motivation", "Har percent progress success hai,", "Rukna mat, finish tak jao."),
+    ("🔥 Motivation", "Har byte ek kadam hai,", "Finish line tumhara intezaar kar rahi hai."),
+    ("🔥 Motivation", "Bas thoda aur sabr rakho,", "Jeet finish line ke baad milti hai."),
+    ("🔥 Motivation", "Har challenge ek opportunity hai,", "Har download ek new beginning."),
+    ("🔥 Motivation", "Speed kam hai par determination high,", "Ye journey success ki taraf le jaayegi."),
 
     # Funny
-    ("Funny", "😎 Funny", "File aa rahi hai boss,", "Bas network chai pe gaya hai."),
-    ("Funny", "😎 Funny", "Progress bar itna stylish hai,", "Aur upload itna slow hai."),
-    ("Funny", "😎 Funny", "Ye download ki speed dekh kar,", "Turtle ne bhi protest kar diya."),
-    ("Funny", "😎 Funny", "Server ne mujhe friend request bheji,", "Kaha \"download karne ka hai plan\"."),
-    ("Funny", "😎 Funny", "Progress bar ne selfie li,", "Kaha \"main to complete ho gaya, tu kab?\""),
-    ("Funny", "😎 Funny", "Ye upload ki speed dekh kar,", "Cheetah ne bhi training lene ka soch liya."),
-    ("Funny", "😎 Funny", "Network ne kaha \"ab bas kar\",", "Main ne kaha \"ek aur file bas\"."),
-    ("Funny", "😎 Funny", "Download complete hone ka wait,", "Jaise exam ka result ka intezar."),
-    ("Funny", "😎 Funny", "Ye progress bar itna cool hai,", "Ki AC ki zaroorat nahi padti."),
-    ("Funny", "😎 Funny", "File aa rahi hai slowly slowly,", "Jaise ki coffee shop mein line lagi ho."),
+    ("😎 Funny", "File aa rahi hai boss,", "Bas network chai pe gaya hai."),
+    ("😎 Funny", "Progress bar itna stylish hai,", "Aur upload itna slow hai."),
+    ("😎 Funny", "Ye download ki speed dekh kar,", "Turtle ne bhi protest kar diya."),
+    ("😎 Funny", "Server ne mujhe friend request bheji,", "Kaha \"download karne ka hai plan\"."),
+    ("😎 Funny", "Progress bar ne selfie li,", "Kaha \"main to complete ho gaya, tu kab?\""),
+    ("😎 Funny", "Ye upload ki speed dekh kar,", "Cheetah ne bhi training lene ka soch liya."),
+    ("😎 Funny", "Network ne kaha \"ab bas kar\",", "Main ne kaha \"ek aur file bas\"."),
+    ("😎 Funny", "Download complete hone ka wait,", "Jaise exam ka result ka intezar."),
+    ("😎 Funny", "Ye progress bar itna cool hai,", "Ki AC ki zaroorat nahi padti."),
+    ("😎 Funny", "File aa rahi hai slowly slowly,", "Jaise ki coffee shop mein line lagi ho."),
 ]
 
 
 def choose_progress_style(percentage: float) -> str:
+    """Build a smooth gradient progress bar with a bright 'head' segment."""
     style = random.choice(THEME_STYLES)[1]
-    segments = 12
-    filled = int((percentage / 100) * segments)
+    segments = 20
+    filled = int(round((percentage / 100) * segments))
+    # gradient fill colours (everything except the last = empty marker)
+    fills = style[:-1]
+    empty = style[-1]
     bar = ""
     for i in range(segments):
-        bar += style[0] if i < filled else style[-1]
+        if i < filled:
+            bar += fills[min(i, len(fills) - 1)]
+        else:
+            bar += empty
     return bar
 
 
 def choose_theme() -> str:
     return random.choice(THEME_STYLES)[0]
+
+
+# Module-level spinner counter for animation between updates
+_spinner_index = 0
+
+
+def choose_spinner() -> str:
+    global _spinner_index
+    frame = SPINNER_FRAMES[_spinner_index % len(SPINNER_FRAMES)]
+    _spinner_index += 1
+    return frame
 
 
 def choose_status(ud_type: str, percentage: float) -> str:
@@ -204,7 +232,7 @@ def choose_extra_text() -> tuple[str, str, str]:
     chosen_idx = random.choice(available_indices)
     _used_extra_indices.add(chosen_idx)
     
-    title, label, line1, line2 = EXTRA_LINES[chosen_idx]
+    label, line1, line2 = EXTRA_LINES[chosen_idx]
     return label, line1, line2
 
 
@@ -238,6 +266,7 @@ async def progress_bar(current, total, *args):
         status = choose_status(ud_type, percentage)
         theme = choose_theme()
         bar = choose_progress_style(percentage)
+        spinner = choose_spinner()
         extra_title, extra_line1, extra_line2 = choose_extra_text()
         link = clean_link(source_link)
 
@@ -249,14 +278,23 @@ async def progress_bar(current, total, *args):
         else:
             link_label = "🔗 Link:"
 
+        # Pick a status emoji for the animated spinner
+        if percentage >= 100:
+            spinner = "✅"
+        elif "Upload" in ud_type:
+            spinner = "📤"
+        elif "Download" in ud_type:
+            spinner = "📥"
+
         text = PROGRESS_BAR.format(
             status=status,
+            spinner=spinner,
             filename=filename,
             extension=extension,
             link_label=link_label,
             link=link,
             bar=bar,
-            percent=round(percentage, 2),
+            percent=round(percentage, 1),
             current=humanbytes(current),
             total=humanbytes(total),
             speed=humanbytes(speed),
@@ -303,7 +341,7 @@ progress_bar.last_update = 0.0
 
 def humanbytes(size):
     if not size:
-        return ""
+        return "0 B"
     power = 2**10
     n = 0
     Dic_powerN = {0: ' ', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
@@ -364,6 +402,131 @@ def get_link(string):
             return False
     except Exception:
         return False
+
+
+def parse_telegram_link(link: str):
+    """Parse any Telegram link into (chat_id, message_id, thread_id, is_story).
+
+    Supports:
+      - https://t.me/username/123               (public chat message)
+      - https://t.me/c/123456789/123            (private channel message)
+      - https://t.me/c/-100123456789/123        (private channel message)
+      - https://t.me/c/-100123456789/TOPIC/123  (supergroup topic/thread message)
+      - https://t.me/username/TOPIC/123          (public supergroup topic message)
+      - https://t.me/username/123?thread=TOPIC  (topic via query param)
+      - https://t.me/username/123?comment=456   (comment under a post)
+      - https://t.me/b/botname/123              (bot message via t.me/b/)
+      - https://t.me/username/s/123             (story)
+      - https://t.me/c/123456789/s/123          (private channel story)
+    Returns (chat_id, message_id, thread_id, is_story). chat_id/message_id may be
+    None when not determinable. thread_id is the topic id (for supergroups).
+    """
+    if not link:
+        return None, None, None, False
+
+    link = link.strip()
+    # Strip fragment and trailing query for path parsing
+    parsed = link.split("#")[0]
+    query = ""
+    if "?" in parsed:
+        parsed, query = parsed.split("?", 1)
+
+    # Normalise: remove scheme, trailing slash, www
+    path = parsed
+    for prefix in ("https://", "http://"):
+        if path.startswith(prefix):
+            path = path[len(prefix):]
+    path = path.replace("www.", "")
+    # Remove known hosts
+    for host in ("t.me/", "telegram.me/", "telesco.pe/"):
+        if path.startswith(host[:4]):  # crude: startswith t.me or telegram.me
+            pass
+    if path.startswith("t.me/"):
+        path = path[4:]
+    elif path.startswith("telegram.me/"):
+        path = path[12:]
+    elif path.startswith("telesco.pe/"):
+        path = path[11:]
+
+    parts = [p for p in path.split("/") if p]
+
+    # Story link: .../s/ID
+    if parts and parts[-2] == "s":
+        # chat is everything before /s/
+        chat_parts = parts[:-2]
+        chat = "/".join(chat_parts) if chat_parts else None
+        try:
+            story_id = int(parts[-1])
+        except ValueError:
+            return None, None, None, False
+        return chat, story_id, None, True
+
+    # t.me/b/botname/ID
+    if parts and parts[0] == "b" and len(parts) >= 3:
+        chat = parts[1]
+        try:
+            msg_id = int(parts[2])
+        except ValueError:
+            return None, None, None, False
+        return chat, msg_id, None, False
+
+    # t.me/c/CHANNEL/...  (private)
+    if parts and parts[0] == "c" and len(parts) >= 3:
+        raw = parts[1]
+        # Convert -100xxxx or xxxx to full -100 form
+        if raw.startswith("-100"):
+            chat = int(raw)
+        elif raw.lstrip("-").isdigit():
+            chat = int("-100" + raw.lstrip("-"))
+        else:
+            chat = raw
+        # Remaining parts after channel id: possibly TOPIC then MSG
+        rest = parts[2:]
+        return _resolve_thread_and_msg(chat, rest, query)
+
+    # Public chat: t.me/username/ID  or  t.me/username/TOPIC/ID
+    if len(parts) >= 2:
+        chat = parts[0]
+        rest = parts[1:]
+        return _resolve_thread_and_msg(chat, rest, query)
+
+    return None, None, None, False
+
+
+def _resolve_thread_and_msg(chat, rest, query):
+    """Resolve (chat, message_id, thread_id) from the path parts after the chat."""
+    thread_id = None
+
+    # Query param style: ?thread=TOPIC or ?comment=MSG
+    if query:
+        for kv in query.split("&"):
+            if "=" not in kv:
+                continue
+            k, v = kv.split("=", 1)
+            if k == "thread" and v.isdigit():
+                thread_id = int(v)
+            if k == "comment" and v.isdigit() and len(rest) == 1:
+                return chat, int(v), thread_id, False
+
+    if len(rest) == 1:
+        try:
+            return chat, int(rest[0]), thread_id, False
+        except ValueError:
+            return chat, None, thread_id, False
+
+    if len(rest) >= 2:
+        # rest = [TOPIC, MSG] for supergroup threads
+        try:
+            topic = int(rest[0])
+            msg = int(rest[1])
+            return chat, msg, topic, False
+        except ValueError:
+            try:
+                return chat, int(rest[-1]), thread_id, False
+            except ValueError:
+                return chat, None, thread_id, False
+
+    return chat, None, thread_id, False
 
 
 def video_metadata(file):

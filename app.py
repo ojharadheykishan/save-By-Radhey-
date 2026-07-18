@@ -58,9 +58,28 @@ def health_check():
 
 
 def start_bot_process():
-    """Start the safe_repo bot."""
+    """Start the safe_repo bot.
+
+    Guard against double-start: if another instance of the bot is already
+    running (e.g. a separate Render worker using the same BOT_TOKEN), two
+    Pyrogram clients would log in to the same bot and Telegram returns a
+    409 Conflict, making the bot stop responding. We skip launching a second
+    instance here if one is already alive.
+    """
     import subprocess
     import time
+
+    # If a bot process is already running, do not spawn a second one.
+    existing = subprocess.run(
+        ["pgrep", "-f", "python3 -m safe_repo"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if existing.stdout.strip():
+        print("safe_repo bot already running (pid(s): "
+              f"{existing.stdout.strip()}); not starting a duplicate.")
+        return
 
     try:
         print("Starting safe_repo bot process...")

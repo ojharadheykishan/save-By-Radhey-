@@ -7,6 +7,7 @@ from safe_repo import app
 from config import API_ID, API_HASH
 from safe_repo.core.get_func import get_msg
 from safe_repo.core.func import *
+from safe_repo.core.func import parse_telegram_link
 from safe_repo.core.mongo import db, plans_db
 from pyrogram.errors import FloodWait, SessionRevoked, AuthKeyDuplicated, AuthKeyUnregistered
 from safe_repo.core import script
@@ -342,11 +343,16 @@ async def batch_link(_, message):
                     remaining = total_messages - processed_count
                     msg = await app.send_message(message.chat.id, f"Processing! ({processed_count + 1}/{total_messages})\nRemaining: {remaining} messages")
                     try:
-                        x = start_id.split('/')
-                        y = x[:-1]
-                        result = '/'.join(y)
-                        url = f"{result}/{i}"
-                        
+                        # Rebuild the link for batch iteration while preserving
+                        # supergroup topic/thread context from the start link.
+                        b_chat, b_start, b_thread, b_story = parse_telegram_link(start_id)
+                        if b_story or b_chat is None:
+                            url = start_id
+                        elif b_thread is not None:
+                            url = f"https://t.me/c/{b_chat}/{b_thread}/{i}" if isinstance(b_chat, int) else f"https://t.me/{b_chat}/{b_thread}/{i}"
+                        else:
+                            url = f"https://t.me/c/{b_chat}/{i}" if isinstance(b_chat, int) else f"https://t.me/{b_chat}/{i}"
+
                         # Process the message
                         await get_msg(userbot, user_id, msg.id, url, 0, message, True)
                         
