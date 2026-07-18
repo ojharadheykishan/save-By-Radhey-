@@ -391,7 +391,8 @@ async def userbot_join(userbot, invite_link):
 
 
 def get_link(string):
-    regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+    # Handles https://, http://, www., bare t.me, username.t.me, and tg:// / tg: deep links
+    regex = r"(?i)\b((?:https?://|tg://|tg:|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
     url = re.findall(regex,string)   
     try:
         link = [x[0] for x in url][0]
@@ -404,54 +405,87 @@ def get_link(string):
 
 
 def parse_telegram_link(link: str):
-    """Parse any Telegram link into (chat_id, message_id, thread_id, is_story).
+    """Parse ANY Telegram link into (chat_id, message_id, thread_id, is_story).
 
-    Supports:
-      - https://t.me/username/123               (public chat message)
-      - https://t.me/c/123456789/123            (private channel message)
-      - https://t.me/c/-100123456789/123        (private channel message)
-      - https://t.me/c/-100123456789/TOPIC/123  (supergroup topic/thread message)
-      - https://t.me/username/TOPIC/123          (public supergroup topic message)
-      - https://t.me/username/123?thread=TOPIC  (topic via query param)
-      - https://t.me/username/123?comment=456   (comment under a post)
-      - https://t.me/b/botname/123              (bot message via t.me/b/)
-      - https://t.me/username/s/123             (story)
-      - https://t.me/c/123456789/s/123          (private channel story)
-    Returns (chat_id, message_id, thread_id, is_story). chat_id/message_id may be
-    None when not determinable. thread_id is the topic id (for supergroups).
+    Handles every official + commonly seen Telegram link format:
+
+      Hosts:  t.me  telegram.me  telegram.dog  k.t.me  (and username.t.me)
+      Schemes: https://  http://  tg://  tg:  (no scheme)
+      Paths:
+        - t.me/username/123               public chat message
+        - t.me/c/123456789/123            private channel message
+        - t.me/c/-100123456789/123        private channel message
+        - t.me/c/-100123456789/TOPIC/123  supergroup topic/thread message
+        - t.me/username/TOPIC/123         public supergroup topic message
+        - t.me/username/123?thread=TOPIC  topic via query param
+        - t.me/username/123?comment=456   comment under a post
+        - t.me/b/botname/123              bot message via t.me/b/
+        - t.me/username/s/123             story (public)
+        - t.me/c/123456789/s/123          story (private channel)
+        - username.t.me/123               alternate host form
+
+    Returns (chat_id, message_id, thread_id, is_story). chat_id/message_id
+    may be None when not determinable. thread_id is the topic id for threads.
     """
     if not link:
         return None, None, None, False
 
     link = link.strip()
-    # Strip fragment and trailing query for path parsing
+
+    # tg:// / tg: deep-link scheme -> normalise to https t.me
+    if link.startswith("tg://"):
+        link = "https://" + link[5:]
+    elif link.startswith("tg:"):
+        link = "https://" + link[3:]
+
+    # Strip fragment, then split off query
     parsed = link.split("#")[0]
     query = ""
     if "?" in parsed:
         parsed, query = parsed.split("?", 1)
 
-    # Normalise: remove scheme, trailing slash, www
-    path = parsed
+    # Remove scheme
     for prefix in ("https://", "http://"):
-        if path.startswith(prefix):
-            path = path[len(prefix):]
-    path = path.replace("www.", "")
-    # Remove known hosts
-    for host in ("t.me/", "telegram.me/", "telesco.pe/"):
-        if path.startswith(host[:4]):  # crude: startswith t.me or telegram.me
-            pass
-    if path.startswith("t.me/"):
-        path = path[4:]
-    elif path.startswith("telegram.me/"):
-        path = path[12:]
-    elif path.startswith("telesco.pe/"):
-        path = path[11:]
+        if parsed.startswith(prefix):
+            parsed = parsed[len(prefix):]
+    parsed = parsed.replace("www.", "")
+
+    # Strip known Telegram hosts (including username.t.me form)
+    # Order matters: longest/specific first.
+    hosts = (
+        "telegram.dog/", "telegram.me/", "k.t.me/", "t.me/",
+        ".t.me/",  # suffix form: username.t.me
+    )
+    path = parsed
+    lowered = parsed.lower()
+    if lowered.startswith(hosts[0]):
+        path = parsed[len(hosts[0]):]
+    elif lowered.startswith(hosts[1]):
+        path = parsed[len(hosts[1]):]
+    elif lowered.startswith(hosts[2]):
+        path = parsed[len(hosts[2]):]
+    elif lowered.startswith(hosts[3]):
+        path = parsed[len(hosts[3]):]
+    elif ".t.me/" in lowered:
+        # username.t.me/...  -> keep username as chat, drop .t.me
+        head, tail = parsed.split("/", 1)
+        chat = head[:-5] if head.endswith(".t.me") else head
+        path = chat + "/" + tail
+
+    # tg://resolve?domain=NAME&post=ID  (deep link with post param)
+    if path == "resolve":
+        from urllib.parse import parse_qs
+        qs = parse_qs(query if query else "")
+        dom = qs.get("domain", [None])[0]
+        post = qs.get("post", [None])[0]
+        if dom and post and post.isdigit():
+            return dom, int(post), None, False
+        # fall through to generic handling if not a post link
 
     parts = [p for p in path.split("/") if p]
 
-    # Story link: .../s/ID
-    if parts and parts[-2] == "s":
-        # chat is everything before /s/
+    # Story link: .../s/ID  (public or private)
+    if len(parts) >= 2 and parts[-2] == "s":
         chat_parts = parts[:-2]
         chat = "/".join(chat_parts) if chat_parts else None
         try:
@@ -469,21 +503,19 @@ def parse_telegram_link(link: str):
             return None, None, None, False
         return chat, msg_id, None, False
 
-    # t.me/c/CHANNEL/...  (private)
+    # t.me/c/CHANNEL/...  (private channel / supergroup)
     if parts and parts[0] == "c" and len(parts) >= 3:
         raw = parts[1]
-        # Convert -100xxxx or xxxx to full -100 form
         if raw.startswith("-100"):
             chat = int(raw)
         elif raw.lstrip("-").isdigit():
             chat = int("-100" + raw.lstrip("-"))
         else:
             chat = raw
-        # Remaining parts after channel id: possibly TOPIC then MSG
         rest = parts[2:]
         return _resolve_thread_and_msg(chat, rest, query)
 
-    # Public chat: t.me/username/ID  or  t.me/username/TOPIC/ID
+    # Public chat / supergroup: t.me/username/ID  or  /TOPIC/ID
     if len(parts) >= 2:
         chat = parts[0]
         rest = parts[1:]
@@ -493,10 +525,9 @@ def parse_telegram_link(link: str):
 
 
 def _resolve_thread_and_msg(chat, rest, query):
-    """Resolve (chat, message_id, thread_id) from the path parts after the chat."""
+    """Resolve (chat, message_id, thread_id) from the path parts after chat."""
     thread_id = None
 
-    # Query param style: ?thread=TOPIC or ?comment=MSG
     if query:
         for kv in query.split("&"):
             if "=" not in kv:
@@ -514,7 +545,6 @@ def _resolve_thread_and_msg(chat, rest, query):
             return chat, None, thread_id, False
 
     if len(rest) >= 2:
-        # rest = [TOPIC, MSG] for supergroup threads
         try:
             topic = int(rest[0])
             msg = int(rest[1])

@@ -52,11 +52,14 @@ async def single_link(_, message):
             return
 
         try:
-            # Handle various Telegram link formats
-            if 't.me/+' in link or 'telegram.me/+' in link:
+            # Invite links (t.me/+, telegram.me/+) -> join the chat
+            if '/+' in link or 'joinchat/' in link:
                 q = await userbot_join(userbot, link)
                 await msg.edit_text(q)
-            elif 't.me/' in link or 'telegram.me/' in link:
+            else:
+                # Let get_msg handle all message/story/topic/bot links via the
+                # robust parser. It will reply with a clear error if the link
+                # cannot be parsed.
                 await get_msg(userbot, user_id, msg.id, link, 0, message, False)
         except Exception as e:
             logger.error(f"Processing error: {e}")
