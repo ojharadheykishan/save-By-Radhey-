@@ -63,8 +63,25 @@ async def safe_repo_boot():
         asyncio.create_task(keep_alive_task())
 
         # Start the Pyrogram client
+        # Handle 409 Conflict: if another instance is logged in with the same
+        # bot token, Telegram rejects the new login. We terminate the other
+        # session(s) and retry so the bot can recover without manual restart.
         from safe_repo import app
-        await app.start()
+        try:
+            await app.start()
+        except Exception as e:
+            err = str(e)
+            logger.error(f"Bot start failed: {err}")
+            if "409" in err or "Conflict" in err or "TERMINATED" in err.upper():
+                logger.warning("409 Conflict detected - terminating other sessions and retrying...")
+                try:
+                    await app.terminate()
+                except Exception:
+                    pass
+                await asyncio.sleep(3)
+                await app.start()
+            else:
+                raise
         logger.info("Bot client started successfully")
         
         # Send bot start notification

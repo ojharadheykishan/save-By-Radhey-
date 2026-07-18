@@ -329,7 +329,6 @@ async def show_completion_ui(message, file_path, total_time, file_size):
 By Radhey Kishan Ojha
 📞 https://t.me/Radheyojha096
 
-__**Powered by safe_repo**__
 """
         await message.edit(completion_text)
     except Exception as e:
