@@ -270,6 +270,14 @@ async def handle_direct_media(client, message):
             await app.edit_message_text(chat_id, status_message.id, format_failure_message())
             return
 
+        if not os.path.exists(saved.get('file_path', '')):
+            try:
+                os.remove(media_file)
+            except Exception:
+                pass
+            await app.edit_message_text(chat_id, status_message.id, format_failure_message())
+            return
+
         metadata = extract_stream_metadata(message, fallback_title=os.path.basename(media_file))
         append_stream_link(
             saved['player_url'],

@@ -39,9 +39,13 @@ def _get_base_url(base_url=None):
         or os.environ.get("APP_URL")
         or os.environ.get("RENDER_EXTERNAL_URL")
         or os.environ.get("BASE_URL")
-        or "http://127.0.0.1:5000"
-    )
-    return env_url.rstrip("/")
+        or ""
+    ).strip()
+
+    if env_url:
+        return env_url.rstrip("/")
+
+    return "http://127.0.0.1:5000"
 
 
 def _get_max_stream_file_size_bytes(max_size_mb=None):
