@@ -1,6 +1,7 @@
 import os
 import shutil
 import uuid
+from datetime import datetime as dt
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -62,6 +63,40 @@ def save_stream_file(source_path, base_url=None, cache_dir=None) -> Optional[Dic
         "stream_url": f"{base_url}/stream/{token}",
         "player_url": f"{base_url}/player/{token}",
     }
+
+
+def get_archive_path(archive_path=None):
+    """Return the path used for storing generated stream links."""
+    if archive_path:
+        return str(Path(archive_path).expanduser())
+
+    env_path = os.environ.get("STREAM_LINKS_FILE")
+    if env_path:
+        return str(Path(env_path).expanduser())
+
+    cache_dir = Path(_get_cache_dir())
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return str(cache_dir / "stream_links.txt")
+
+
+def append_stream_link(player_url, stream_url, label="stream", archive_path=None):
+    """Append a generated stream link to a text archive file."""
+    archive_file = Path(get_archive_path(archive_path))
+    archive_file.parent.mkdir(parents=True, exist_ok=True)
+    stamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    with archive_file.open("a", encoding="utf-8") as handle:
+        handle.write(f"[{stamp}] {label}\n")
+        handle.write(f"Player: {player_url}\n")
+        handle.write(f"Stream: {stream_url}\n\n")
+    return str(archive_file)
+
+
+def read_stream_links(archive_path=None):
+    """Read the text archive of generated stream links."""
+    archive_file = Path(get_archive_path(archive_path))
+    if not archive_file.exists():
+        return ""
+    return archive_file.read_text(encoding="utf-8")
 
 
 def get_stream_file(token):

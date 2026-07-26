@@ -89,23 +89,50 @@ def player_page(token):
           body {{ margin:0; background:#000; color:#fff; font-family:Arial,sans-serif; }}
           .wrap {{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; box-sizing:border-box; }}
           .box {{ width:100%; max-width:900px; background:#111; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.4); }}
-          .top {{ padding:12px 16px; background:#1a1a1a; display:flex; justify-content:space-between; align-items:center; }}
+          .top {{ padding:12px 16px; background:#1a1a1a; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }}
+          .controls {{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }}
+          select, button {{ border:none; border-radius:6px; padding:6px 10px; background:#222; color:#fff; }}
           video {{ width:100%; height:auto; background:#000; display:block; }}
           a {{ color:#4da3ff; text-decoration:none; }}
+          .small {{ font-size:0.85rem; color:#aaa; }}
         </style>
       </head>
       <body>
         <div class="wrap">
           <div class="box">
             <div class="top">
-              <div>🎬 Media Stream Player</div>
-              <a href="{stream_url}" target="_blank">Open Direct Link</a>
+              <div>
+                <div>🎬 Media Stream Player</div>
+                <div class="small">Bot made by Radhey</div>
+              </div>
+              <div class="controls">
+                <select id="quality">
+                  <option value="original">Original</option>
+                  <option value="stream">Stream</option>
+                </select>
+                <select id="speed">
+                  <option value="1">1x</option>
+                  <option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option>
+                  <option value="2">2x</option>
+                  <option value="4">4x</option>
+                </select>
+                <a href="{stream_url}" target="_blank">Open Direct Link</a>
+                <a href="{stream_url}?download=1" target="_blank">Download</a>
+              </div>
             </div>
-            <video controls autoplay playsinline>
+            <video id="player" controls autoplay playsinline>
               <source src="{stream_url}" />
             </video>
           </div>
         </div>
+        <script>
+          const player = document.getElementById('player');
+          const speedSelect = document.getElementById('speed');
+          const qualitySelect = document.getElementById('quality');
+          speedSelect.addEventListener('change', () => {{ player.playbackRate = parseFloat(speedSelect.value); }});
+          qualitySelect.addEventListener('change', () => {{ document.querySelector('.small').textContent = 'Quality: ' + qualitySelect.value; }});
+        </script>
       </body>
     </html>
     """, 200, {"Content-Type": "text/html; charset=utf-8"}

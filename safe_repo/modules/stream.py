@@ -9,7 +9,7 @@ import uuid
 from pyrogram import filters
 from safe_repo import app
 from config import STREAM_CHANNEL, STREAM_CHANNEL_USERNAME
-from safe_repo.core.media_links import save_stream_file
+from safe_repo.core.media_links import append_stream_link, save_stream_file, read_stream_links
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +146,8 @@ async def handle_direct_media(client, message):
             await app.send_message(chat_id, "⚠️ Stream link generate nahi ho paya.")
             return
 
+        append_stream_link(saved['player_url'], saved['stream_url'], label="direct_media")
+
         text = (
             "🎬 **Stream link ready**\n\n"
             f"📺 Player: {saved['player_url']}\n"
@@ -167,3 +169,31 @@ async def handle_direct_media(client, message):
 async def handle_forwarded_media(client, message):
     """Generate stream links for forwarded media messages as well."""
     await handle_direct_media(client, message)
+
+
+@app.on_message(filters.command("links"))
+async def export_stream_links(_, message):
+    """Send a text file containing all generated stream links."""
+    try:
+        content = read_stream_links()
+        if not content.strip():
+            await app.send_message(message.chat.id, "📄 Abhi tak koi stream link archive nahi hui.")
+            return
+
+        archive_path = os.path.join(os.getcwd(), "stream_links.txt")
+        with open(archive_path, "w", encoding="utf-8") as handle:
+            handle.write(content)
+
+        await app.send_document(
+            chat_id=message.chat.id,
+            document=archive_path,
+            caption="📄 Generated stream links archive",
+        )
+    except Exception as e:
+        logger.error(f"export_stream_links failed: {e}")
+        await app.send_message(message.chat.id, f"⚠️ Error: {str(e)}")
+
+
+@app.on_message(filters.command("exportlinks"))
+async def export_stream_links_alias(_, message):
+    await export_stream_links(_, message)
