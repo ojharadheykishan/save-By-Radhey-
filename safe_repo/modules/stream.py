@@ -14,6 +14,19 @@ from safe_repo.core.media_links import append_stream_link, save_stream_file, rea
 logger = logging.getLogger(__name__)
 
 
+def format_progress_bar(percent, title="Processing", note="Please wait"):
+    """Create a compact Telegram-friendly progress message."""
+    percent = max(0, min(100, int(percent)))
+    filled = max(1, int(round(percent / 10)))
+    empty = 10 - filled
+    bar = "█" * filled + "░" * empty
+    return (
+        f"{title}\n"
+        f"[{bar}] {percent}%\n"
+        f"{note}"
+    )
+
+
 def get_archive_chat_ids():
     """Return chat IDs that should receive archived stream links."""
     configured_ids = []
@@ -71,7 +84,7 @@ def has_media_payload(message):
     )
 
 
-async def download_media_payload(client, message):
+async def download_media_payload(client, message, progress_sender=None, progress_message_id=None):
     """Download media with a fallback for forwarded files."""
     file_name = build_local_file_name(message)
     media_file = None
@@ -86,6 +99,16 @@ async def download_media_payload(client, message):
             media_file = await message.download(file_name=file_name)
         except Exception:
             media_file = None
+
+    if progress_sender and progress_message_id and media_file:
+        try:
+            await app.edit_message_text(
+                progress_sender,
+                progress_message_id,
+                format_progress_bar(100, "Link ready", "Almost done"),
+            )
+        except Exception:
+            pass
 
     return media_file
 
@@ -170,10 +193,28 @@ async def handle_direct_media(client, message):
             return
 
         chat_id = message.chat.id
-        media_file = await download_media_payload(client, message)
+        status_message = await app.send_message(
+            chat_id,
+            format_progress_bar(15, "Processing media", "Starting download"),
+        )
+        media_file = await download_media_payload(
+            client,
+            message,
+            progress_sender=chat_id,
+            progress_message_id=status_message.id,
+        )
         if not media_file:
-            await app.send_message(chat_id, "⚠️ Media download failed. Please try again.")
+            await app.edit_message_text(chat_id, status_message.id, "⚠️ Media download failed. Please try again.")
             return
+
+        try:
+            await app.edit_message_text(
+                chat_id,
+                status_message.id,
+                format_progress_bar(60, "Preparing stream link", "Generating public link"),
+            )
+        except Exception:
+            pass
 
         saved = save_stream_file(media_file)
         if not saved:
@@ -190,7 +231,7 @@ async def handle_direct_media(client, message):
             f"🔗 Direct Stream: {saved['stream_url']}\n\n"
             "Is link ko VLC / MX Player me open karo."
         )
-        await app.send_message(chat_id, text)
+        await app.edit_message_text(chat_id, status_message.id, text)
 
         try:
             os.remove(media_file)

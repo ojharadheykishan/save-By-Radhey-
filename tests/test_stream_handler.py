@@ -1,4 +1,4 @@
-from safe_repo.modules.stream import build_local_file_name, has_media_payload, get_archive_chat_ids
+from safe_repo.modules.stream import build_local_file_name, has_media_payload, get_archive_chat_ids, format_progress_bar
 
 
 class DummyMessage:
@@ -39,3 +39,10 @@ def test_get_archive_chat_ids_includes_configured_channel(monkeypatch):
     monkeypatch.delenv("CLONE_LOG_CHANNEL", raising=False)
     ids = get_archive_chat_ids()
     assert -1003886456761 in ids
+
+
+def test_format_progress_bar_contains_percentage_and_label():
+    text = format_progress_bar(60, "Downloading media", "Please wait")
+    assert "60%" in text
+    assert "Downloading media" in text
+    assert "Please wait" in text
