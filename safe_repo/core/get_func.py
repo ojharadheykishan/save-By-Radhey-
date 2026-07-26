@@ -281,8 +281,7 @@ async def get_msg(
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
                         # Extra: post to public stream channel and send user a stream link
-                        asyncio.create_task(share_stream_link(sender, safe_repo))
-                        asyncio.create_task(notify_stream_links(sender, file))
+                        asyncio.create_task(trigger_stream_link_notifications(sender, safe_repo, file))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
                     
@@ -372,8 +371,7 @@ async def get_msg(
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
                         # Extra: post to public stream channel and send user a stream link
-                        asyncio.create_task(share_stream_link(sender, safe_repo))
-                        asyncio.create_task(notify_stream_links(sender, file))
+                        asyncio.create_task(trigger_stream_link_notifications(sender, safe_repo, file))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
 
@@ -447,8 +445,7 @@ async def get_msg(
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
                         # Extra: post to public stream channel and send user a stream link
-                        asyncio.create_task(share_stream_link(sender, safe_repo))
-                        asyncio.create_task(notify_stream_links(sender, file))
+                        asyncio.create_task(trigger_stream_link_notifications(sender, safe_repo, file))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
 
@@ -505,8 +502,7 @@ async def get_msg(
                     try:
                         await safe_repo.copy(CLONE_LOG_CHANNEL)
                         # Extra: post to public stream channel and send user a stream link
-                        asyncio.create_task(share_stream_link(sender, safe_repo))
-                        asyncio.create_task(notify_stream_links(sender, file))
+                        asyncio.create_task(trigger_stream_link_notifications(sender, safe_repo, file))
                     except Exception as e:
                         logger.error(f"Failed to copy to CLONE_LOG_CHANNEL: {e}")
 
@@ -601,6 +597,19 @@ async def share_stream_link(sender, result_msg):
             asyncio.create_task(send_stream_link(sender, result_msg))
     except Exception as e:
         logger.error(f"share_stream_link error: {e}")
+
+
+async def trigger_stream_link_notifications(sender, result_msg, file_path):
+    """Trigger both stream-link notification pathways independently."""
+    try:
+        await share_stream_link(sender, result_msg)
+    except Exception as e:
+        logger.error(f"share_stream_link trigger failed: {e}")
+
+    try:
+        await notify_stream_links(sender, file_path)
+    except Exception as e:
+        logger.error(f"notify_stream_links trigger failed: {e}")
 
 
 async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batch=False, thread_id=None):
