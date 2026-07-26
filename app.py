@@ -164,14 +164,27 @@ def build_stream_response(path, as_attachment=False):
     if not mime_type:
         mime_type = "application/octet-stream"
 
-    with app.test_request_context('/'):
-        return send_file(
+    try:
+        response = send_file(
             path,
             mimetype=mime_type,
             as_attachment=as_attachment,
             download_name=os.path.basename(path),
             conditional=True,
         )
+    except RuntimeError:
+        with app.test_request_context('/'):
+            response = send_file(
+                path,
+                mimetype=mime_type,
+                as_attachment=as_attachment,
+                download_name=os.path.basename(path),
+                conditional=True,
+            )
+
+    response.headers['Content-Type'] = mime_type
+    response.headers['Content-Disposition'] = 'inline' if not as_attachment else 'attachment; filename="%s"' % os.path.basename(path)
+    return response
 
 
 @app.route('/stream/<token>')
