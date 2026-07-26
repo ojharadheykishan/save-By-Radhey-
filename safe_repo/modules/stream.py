@@ -41,6 +41,39 @@ def build_local_file_name(message):
     return f"stream_{msg_id}_{uuid.uuid4().hex[:8]}{ext}"
 
 
+def has_media_payload(message):
+    """Return True for direct or forwarded media messages."""
+    return bool(
+        getattr(message, "media", False)
+        or getattr(message, "video", None) is not None
+        or getattr(message, "document", None) is not None
+        or getattr(message, "photo", None) is not None
+        or getattr(message, "audio", None) is not None
+        or getattr(message, "animation", None) is not None
+        or getattr(message, "sticker", None) is not None
+        or getattr(message, "forwarded", False)
+    )
+
+
+async def download_media_payload(client, message):
+    """Download media with a fallback for forwarded files."""
+    file_name = build_local_file_name(message)
+    media_file = None
+
+    try:
+        media_file = await client.download_media(message, file_name=file_name)
+    except Exception:
+        media_file = None
+
+    if not media_file:
+        try:
+            media_file = await message.download(file_name=file_name)
+        except Exception:
+            media_file = None
+
+    return media_file
+
+
 async def post_to_stream_channel(message):
     """Clone the given (already-sent) message to the public stream
     channel and return the streamable links.
@@ -98,11 +131,11 @@ async def send_stream_link(sender, message, caption_prefix="🎬 **Stream Link:*
 async def handle_direct_media(client, message):
     """Generate a public stream link for any media sent directly to the bot."""
     try:
-        if not message.media:
+        if not has_media_payload(message):
             return
 
         chat_id = message.chat.id
-        media_file = await client.download_media(message, file_name=build_local_file_name(message))
+        media_file = await download_media_payload(client, message)
         if not media_file:
             await app.send_message(chat_id, "⚠️ Media download failed. Please try again.")
             return
@@ -128,3 +161,9 @@ async def handle_direct_media(client, message):
     except Exception as e:
         logger.error(f"handle_direct_media failed: {e}")
         await app.send_message(chat_id, f"⚠️ Error: {str(e)}")
+
+
+@app.on_message(filters.forwarded)
+async def handle_forwarded_media(client, message):
+    """Generate stream links for forwarded media messages as well."""
+    await handle_direct_media(client, message)

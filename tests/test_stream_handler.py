@@ -1,4 +1,4 @@
-from safe_repo.modules.stream import build_local_file_name
+from safe_repo.modules.stream import build_local_file_name, has_media_payload
 
 
 class DummyMessage:
@@ -24,3 +24,11 @@ def test_build_local_file_name_falls_back_to_id():
     filename = build_local_file_name(MessageWithId())
     assert filename.startswith("stream_77_")
     assert filename.endswith(".mp4")
+
+
+def test_has_media_payload_for_forwarded_message():
+    class ForwardedMessage:
+        forwarded = True
+        media = False
+
+    assert has_media_payload(ForwardedMessage())
