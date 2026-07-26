@@ -21,9 +21,21 @@ def format_progress_bar(percent, title="Processing", note="Please wait"):
     empty = 10 - filled
     bar = "█" * filled + "░" * empty
     return (
-        f"{title}\n"
+        f"🎬 {title}\n"
         f"[{bar}] {percent}%\n"
         f"{note}"
+    )
+
+
+def format_failure_message(reason="Stream setup failed"):
+    """Return a friendly failure message for link generation issues."""
+    return (
+        "⚠️ Stream link generate nahi ho paya\n\n"
+        "Possible reasons:\n"
+        "• file thoda badi ho sakti hai\n"
+        "• bot ke paas temporary storage access nahi ho\n"
+        "• public URL setup incomplete ho sakti hai\n\n"
+        "Aap dobara try karo ya thodi der baad try karo."
     )
 
 
@@ -227,7 +239,11 @@ async def handle_direct_media(client, message):
             progress_message_id=status_message.id,
         )
         if not media_file:
-            await app.edit_message_text(chat_id, status_message.id, "⚠️ Media download failed. Please try again.")
+            await app.edit_message_text(
+                chat_id,
+                status_message.id,
+                "⚠️ Media download fail ho gaya.\n\nPlease try again in a moment.",
+            )
             return
 
         try:
@@ -241,8 +257,11 @@ async def handle_direct_media(client, message):
 
         saved = save_stream_file(media_file)
         if not saved:
-            os.remove(media_file)
-            await app.send_message(chat_id, "⚠️ Stream link generate nahi ho paya.")
+            try:
+                os.remove(media_file)
+            except Exception:
+                pass
+            await app.edit_message_text(chat_id, status_message.id, format_failure_message())
             return
 
         metadata = extract_stream_metadata(message, fallback_title=os.path.basename(media_file))
@@ -258,7 +277,7 @@ async def handle_direct_media(client, message):
         await archive_stream_link(message, saved['player_url'], saved['stream_url'])
 
         text = (
-            "🎬 **Stream link ready**\n\n"
+            "✅ **Stream link ready**\n\n"
             f"📺 Player: {saved['player_url']}\n"
             f"🔗 Direct Stream: {saved['stream_url']}\n\n"
             "Is link ko VLC / MX Player me open karo."
