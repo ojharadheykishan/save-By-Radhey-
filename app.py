@@ -1,6 +1,7 @@
 import os
 import time
 import threading
+import mimetypes
 import requests
 from flask import Flask, send_file, abort, request, render_template_string
 from safe_repo.core.media_links import get_stream_file, read_stream_entries, get_stream_entry
@@ -154,6 +155,25 @@ def catalog_page():
     """, subjects=subjects, dates=dates, filtered=filtered, subject_filter=subject_filter, date_filter=date_filter)
 
 
+def build_stream_response(path, as_attachment=False):
+    """Build a browser-friendly response for stream and download requests."""
+    if not os.path.exists(path):
+        return None
+
+    mime_type, _ = mimetypes.guess_type(path)
+    if not mime_type:
+        mime_type = "application/octet-stream"
+
+    with app.test_request_context('/'):
+        return send_file(
+            path,
+            mimetype=mime_type,
+            as_attachment=as_attachment,
+            download_name=os.path.basename(path),
+            conditional=True,
+        )
+
+
 @app.route('/stream/<token>')
 def stream_media(token):
     """Serve a cached media file as a direct HTTP stream."""
@@ -162,11 +182,10 @@ def stream_media(token):
         abort(404)
 
     path = entry["file_path"]
-    if not os.path.exists(path):
+    response = build_stream_response(path, as_attachment=request.args.get("download") == "1")
+    if response is None:
         abort(404)
-
-    as_attachment = request.args.get("download") == "1"
-    return send_file(path, as_attachment=as_attachment)
+    return response
 
 
 @app.route('/player/<token>')
