@@ -43,6 +43,29 @@ def get_archive_chat_ids():
     return configured_ids
 
 
+def extract_stream_metadata(message, fallback_title=None):
+    """Extract a subject/description/title from an incoming media message."""
+    caption = getattr(message, "caption", None) or getattr(message, "text", None) or ""
+    caption = str(caption).strip()
+    title = fallback_title or "Untitled"
+    description = caption
+    subject = "General"
+
+    if caption:
+        lines = [line.strip() for line in caption.splitlines() if line.strip()]
+        if lines:
+            title = lines[0]
+        for line in lines:
+            if line.lower().startswith("subject:"):
+                subject = line.split(":", 1)[1].strip() or subject
+                break
+            if line.lower().startswith("topic:"):
+                subject = line.split(":", 1)[1].strip() or subject
+                break
+
+    return {"subject": subject, "description": description, "title": title}
+
+
 def build_local_file_name(message):
     """Create a safe local filename based on the incoming message."""
     ext = ".mp4"
@@ -222,7 +245,16 @@ async def handle_direct_media(client, message):
             await app.send_message(chat_id, "⚠️ Stream link generate nahi ho paya.")
             return
 
-        append_stream_link(saved['player_url'], saved['stream_url'], label="direct_media")
+        metadata = extract_stream_metadata(message, fallback_title=os.path.basename(media_file))
+        append_stream_link(
+            saved['player_url'],
+            saved['stream_url'],
+            label="direct_media",
+            subject=metadata['subject'],
+            description=metadata['description'],
+            title=metadata['title'],
+            token=saved['token'],
+        )
         await archive_stream_link(message, saved['player_url'], saved['stream_url'])
 
         text = (

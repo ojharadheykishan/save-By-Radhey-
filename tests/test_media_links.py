@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from safe_repo.core.media_links import save_stream_file
+from safe_repo.core.media_links import save_stream_file, append_stream_link, read_stream_entries
 
 
 def test_save_stream_file_creates_public_stream_and_player_urls(tmp_path):
@@ -40,3 +40,25 @@ def test_save_stream_file_rejects_large_files(tmp_path):
     )
 
     assert result is None
+
+
+def test_append_stream_link_stores_catalog_entry(tmp_path):
+    archive_path = tmp_path / "links.txt"
+    entry_path = tmp_path / "catalog.json"
+    result = append_stream_link(
+        "https://example.com/player/demo",
+        "https://example.com/stream/demo",
+        archive_path=str(archive_path),
+        catalog_path=str(entry_path),
+        subject="Movie",
+        description="A sample description",
+        title="Sample title",
+        token="demo",
+    )
+
+    assert archive_path.exists()
+    assert entry_path.exists()
+    entries = read_stream_entries(catalog_path=str(entry_path))
+    assert len(entries) == 1
+    assert entries[0]["subject"] == "Movie"
+    assert entries[0]["token"] == "demo"
