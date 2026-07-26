@@ -2,7 +2,8 @@ import os
 import time
 import threading
 import requests
-from flask import Flask
+from flask import Flask, send_file, abort, request
+from safe_repo.core.media_links import get_stream_file
 
 app = Flask(__name__)
 
@@ -55,6 +56,59 @@ def home():
 def health_check():
     """Health check endpoint for monitoring"""
     return "OK", 200
+
+
+@app.route('/stream/<token>')
+def stream_media(token):
+    """Serve a cached media file as a direct HTTP stream."""
+    entry = get_stream_file(token)
+    if not entry:
+        abort(404)
+
+    path = entry["file_path"]
+    if not os.path.exists(path):
+        abort(404)
+
+    return send_file(path, as_attachment=False)
+
+
+@app.route('/player/<token>')
+def player_page(token):
+    """Return a simple HTML page that opens the stream in a player-friendly way."""
+    entry = get_stream_file(token)
+    if not entry:
+        abort(404)
+
+    stream_url = f"{request.url_root.rstrip('/')}/stream/{token}"
+    return f"""
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Stream Player</title>
+        <style>
+          body {{ margin:0; background:#000; color:#fff; font-family:Arial,sans-serif; }}
+          .wrap {{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; box-sizing:border-box; }}
+          .box {{ width:100%; max-width:900px; background:#111; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.4); }}
+          .top {{ padding:12px 16px; background:#1a1a1a; display:flex; justify-content:space-between; align-items:center; }}
+          video {{ width:100%; height:auto; background:#000; display:block; }}
+          a {{ color:#4da3ff; text-decoration:none; }}
+        </style>
+      </head>
+      <body>
+        <div class="wrap">
+          <div class="box">
+            <div class="top">
+              <div>🎬 Media Stream Player</div>
+              <a href="{stream_url}" target="_blank">Open Direct Link</a>
+            </div>
+            <video controls autoplay playsinline>
+              <source src="{stream_url}" />
+            </video>
+          </div>
+        </div>
+      </body>
+    </html>
+    """, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 def start_bot_process():
