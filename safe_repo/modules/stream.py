@@ -155,16 +155,27 @@ async def download_media_payload(client, message, progress_sender=None, progress
 
 
 async def post_to_stream_channel(message):
-    """Clone the given (already-sent) message to the public stream
-    channel and return the streamable links.
+    """Clone the given message to the public stream channel and return the streamable links.
 
-    Returns a dict with 'link' (plain) and 'embed' (?embed=1 for VLC/MX Player),
-    or None on failure.
+    This is the fallback path for forwarded media and very large files when local
+    caching is not possible or practical.
     """
     try:
         if message is None:
             return None
-        forwarded = await message.copy(STREAM_CHANNEL)
+
+        forwarded = None
+        for action in ("copy", "forward"):
+            try:
+                if action == "copy":
+                    forwarded = await message.copy(STREAM_CHANNEL)
+                else:
+                    forwarded = await message.forward(STREAM_CHANNEL)
+                if forwarded is not None:
+                    break
+            except Exception as inner_error:
+                logger.debug(f"Stream channel {action} attempt failed: {inner_error}")
+
         if forwarded is None:
             return None
         msg_id = getattr(forwarded, "id", None)
@@ -178,6 +189,32 @@ async def post_to_stream_channel(message):
     except Exception as e:
         logger.error(f"Stream channel post failed: {e}")
         return None
+
+
+async def build_public_stream_link(message, media_file=None):
+    """Build a public stream link from local cache when possible, else fall back to a Telegram channel post for large or unsupported files."""
+    if media_file and os.path.exists(media_file):
+        try:
+            saved = save_stream_file(media_file)
+            if saved:
+                return {
+                    "source": "cache",
+                    "player_url": saved["player_url"],
+                    "stream_url": saved["stream_url"],
+                    "token": saved["token"],
+                }
+        except Exception:
+            pass
+
+    result = await post_to_stream_channel(message)
+    if result:
+        return {
+            "source": "channel",
+            "player_url": result["embed"],
+            "stream_url": result["link"],
+            "token": None,
+        }
+    return None
 
 
 async def archive_stream_link(message, player_url, stream_url):
@@ -261,16 +298,8 @@ async def handle_direct_media(client, message):
         except Exception:
             pass
 
-        saved = save_stream_file(media_file)
-        if not saved:
-            try:
-                os.remove(media_file)
-            except Exception:
-                pass
-            await app.edit_message_text(chat_id, status_message.id, format_failure_message())
-            return
-
-        if not os.path.exists(saved.get('file_path', '')):
+        public_link = await build_public_stream_link(message, media_file)
+        if not public_link:
             try:
                 os.remove(media_file)
             except Exception:
@@ -280,22 +309,30 @@ async def handle_direct_media(client, message):
 
         metadata = extract_stream_metadata(message, fallback_title=os.path.basename(media_file))
         append_stream_link(
-            saved['player_url'],
-            saved['stream_url'],
+            public_link['player_url'],
+            public_link['stream_url'],
             label="direct_media",
             subject=metadata['subject'],
             description=metadata['description'],
             title=metadata['title'],
-            token=saved['token'],
+            token=public_link.get('token'),
         )
-        await archive_stream_link(message, saved['player_url'], saved['stream_url'])
+        await archive_stream_link(message, public_link['player_url'], public_link['stream_url'])
 
-        text = (
-            "✅ **Stream link ready**\n\n"
-            f"📺 Player: {saved['player_url']}\n"
-            f"🔗 Direct Stream: {saved['stream_url']}\n\n"
-            "Is link ko VLC / MX Player me open karo."
-        )
+        if public_link.get('source') == 'channel':
+            text = (
+                "✅ **Stream link ready**\n\n"
+                f"📺 Player: {public_link['player_url']}\n"
+                f"🔗 Direct Stream: {public_link['stream_url']}\n\n"
+                "Ye link Telegram public channel post se generate hui hai, isko VLC / MX Player me open kar sakte ho."
+            )
+        else:
+            text = (
+                "✅ **Stream link ready**\n\n"
+                f"📺 Player: {public_link['player_url']}\n"
+                f"🔗 Direct Stream: {public_link['stream_url']}\n\n"
+                "Is link ko VLC / MX Player me open karo."
+            )
         await app.edit_message_text(chat_id, status_message.id, text)
 
         try:

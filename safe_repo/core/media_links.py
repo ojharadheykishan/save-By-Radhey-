@@ -53,13 +53,13 @@ def _get_max_stream_file_size_bytes(max_size_mb=None):
         try:
             return int(max_size_mb) * 1024 * 1024
         except (TypeError, ValueError):
-            return 200 * 1024 * 1024
+            return 5000 * 1024 * 1024
 
-    env_value = os.environ.get("MAX_STREAM_FILE_SIZE_MB", "200")
+    env_value = os.environ.get("MAX_STREAM_FILE_SIZE_MB", "5000")
     try:
         return int(env_value) * 1024 * 1024
     except (TypeError, ValueError):
-        return 200 * 1024 * 1024
+        return 5000 * 1024 * 1024
 
 
 def save_stream_file(source_path, base_url=None, cache_dir=None, max_size_mb=None) -> Optional[Dict[str, str]]:
