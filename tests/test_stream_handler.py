@@ -34,6 +34,14 @@ def test_has_media_payload_for_forwarded_message():
     assert has_media_payload(ForwardedMessage())
 
 
+def test_has_media_payload_for_forward_origin_field():
+    class ForwardOriginMessage:
+        forward_origin = object()
+        media = False
+
+    assert has_media_payload(ForwardOriginMessage())
+
+
 def test_get_archive_chat_ids_includes_configured_channel(monkeypatch):
     monkeypatch.delenv("ARCHIVE_CHAT_ID", raising=False)
     monkeypatch.delenv("CLONE_LOG_CHANNEL", raising=False)

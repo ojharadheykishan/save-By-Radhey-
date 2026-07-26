@@ -107,6 +107,12 @@ def build_local_file_name(message):
 
 def has_media_payload(message):
     """Return True for direct or forwarded media messages."""
+    forward_origin = getattr(message, "forward_origin", None)
+    is_forwarded = bool(
+        getattr(message, "forwarded", False)
+        or getattr(message, "is_forwarded", False)
+        or forward_origin is not None
+    )
     return bool(
         getattr(message, "media", False)
         or getattr(message, "video", None) is not None
@@ -115,7 +121,7 @@ def has_media_payload(message):
         or getattr(message, "audio", None) is not None
         or getattr(message, "animation", None) is not None
         or getattr(message, "sticker", None) is not None
-        or getattr(message, "forwarded", False)
+        or is_forwarded
     )
 
 
