@@ -63,10 +63,16 @@ def catalog_page():
     """Show a browseable catalog of generated stream links."""
     subject_filter = (request.args.get('subject') or '').strip()
     date_filter = (request.args.get('date') or '').strip()
+    search_query = (request.args.get('q') or '').strip().lower()
     entries = read_stream_entries()
 
     filtered = []
     for entry in entries:
+        title = str(entry.get('title', '') or '').lower()
+        subject = str(entry.get('subject', '') or '').lower()
+        description = str(entry.get('description', '') or '').lower()
+        if search_query and search_query not in title and search_query not in subject and search_query not in description:
+            continue
         if subject_filter and str(entry.get('subject', '')).lower() != subject_filter.lower():
             continue
         if date_filter and str(entry.get('date', '')) != date_filter:
@@ -87,8 +93,9 @@ def catalog_page():
           body { font-family: Arial, sans-serif; margin: 0; background: #0f172a; color: #f8fafc; }
           .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
           .filters { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-          select, button { padding: 8px 10px; border-radius: 6px; border: 1px solid #334155; background: #111827; color: #f8fafc; }
+          input, select, button { padding: 8px 10px; border-radius: 6px; border: 1px solid #334155; background: #111827; color: #f8fafc; }
           .card { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+          .meta-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
           .topline { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
           .pill { display: inline-block; background: #2563eb; color: white; padding: 4px 8px; border-radius: 999px; font-size: 0.8rem; }
           .actions a, .actions button { display: inline-block; margin-right: 8px; margin-top: 8px; color: #93c5fd; text-decoration: none; }
@@ -101,6 +108,7 @@ def catalog_page():
           <h1>LinkByRK Catalog</h1>
           <p class="muted">Browse links by subject, date, and description.</p>
           <form class="filters" method="get" action="/catalog">
+            <input type="text" name="q" placeholder="Search title / subject / description" value="{{ request.args.get('q','') }}" />
             <select name="subject">
               <option value="">All subjects</option>
               {% for subject in subjects %}
@@ -122,16 +130,18 @@ def catalog_page():
               <div class="topline">
                 <div>
                   <strong>{{ entry.title or entry.subject or 'Untitled' }}</strong>
-                  <div class="muted">{{ entry.date }} · {{ entry.timestamp }}</div>
+                  <div class="meta-line">
+                    <span class="pill">{{ entry.subject or 'General' }}</span>
+                    <span class="muted">{{ entry.date }} · {{ entry.timestamp }}</span>
+                  </div>
                 </div>
-                <div><span class="pill">{{ entry.subject or 'General' }}</span></div>
               </div>
               {% if entry.description %}<div class="desc">{{ entry.description }}</div>{% endif %}
               <div class="actions">
-                <a href="{{ entry.player_url }}" target="_blank">Open Player</a>
-                <a href="{{ entry.stream_url }}" target="_blank">Open Direct Link</a>
-                <button onclick="navigator.clipboard.writeText('{{ entry.stream_url }}')">Copy Stream Link</button>
-                <button onclick="navigator.clipboard.writeText('{{ entry.player_url }}')">Copy Player Link</button>
+                <a href="{{ entry.player_url }}" target="_blank">▶ Open Player</a>
+                <a href="{{ entry.stream_url }}" target="_blank">🔗 Open Direct Link</a>
+                <button onclick="navigator.clipboard.writeText('{{ entry.stream_url }}')">📋 Copy Stream</button>
+                <button onclick="navigator.clipboard.writeText('{{ entry.player_url }}')">📋 Copy Player</button>
               </div>
             </div>
             {% endfor %}
