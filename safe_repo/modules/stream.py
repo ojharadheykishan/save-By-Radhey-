@@ -31,7 +31,14 @@ def build_local_file_name(message):
         ext = ".mp4"
     elif getattr(message, "photo", None) is not None:
         ext = ".jpg"
-    return f"stream_{message.message_id}_{uuid.uuid4().hex[:8]}{ext}"
+
+    msg_id = getattr(message, "message_id", None)
+    if msg_id is None:
+        msg_id = getattr(message, "id", None)
+    if msg_id is None:
+        msg_id = "unknown"
+
+    return f"stream_{msg_id}_{uuid.uuid4().hex[:8]}{ext}"
 
 
 async def post_to_stream_channel(message):
