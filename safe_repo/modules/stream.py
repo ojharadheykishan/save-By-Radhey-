@@ -8,10 +8,26 @@ import os
 import uuid
 from pyrogram import filters
 from safe_repo import app
-from config import STREAM_CHANNEL, STREAM_CHANNEL_USERNAME
+from config import STREAM_CHANNEL, STREAM_CHANNEL_USERNAME, CLONE_LOG_CHANNEL
 from safe_repo.core.media_links import append_stream_link, save_stream_file, read_stream_links
 
 logger = logging.getLogger(__name__)
+
+
+def get_archive_chat_ids():
+    """Return chat IDs that should receive archived stream links."""
+    configured_ids = []
+    for raw_value in (os.environ.get("ARCHIVE_CHAT_ID"), os.environ.get("CLONE_LOG_CHANNEL"), str(CLONE_LOG_CHANNEL)):
+        if not raw_value:
+            continue
+        for chunk in str(raw_value).replace(" ", "").split(","):
+            if not chunk:
+                continue
+            try:
+                configured_ids.append(int(chunk))
+            except ValueError:
+                configured_ids.append(chunk)
+    return configured_ids
 
 
 def build_local_file_name(message):
@@ -100,6 +116,25 @@ async def post_to_stream_channel(message):
         return None
 
 
+async def archive_stream_link(message, player_url, stream_url):
+    """Send the generated stream links to the configured archive chats."""
+    try:
+        text = (
+            "🎬 **Stream link ready**\n\n"
+            f"📺 Player: {player_url}\n"
+            f"🔗 Stream: {stream_url}"
+        )
+        for chat_id in get_archive_chat_ids():
+            if not chat_id:
+                continue
+            try:
+                await app.send_message(chat_id=chat_id, text=text)
+            except Exception as inner_error:
+                logger.warning(f"Failed to archive stream link to {chat_id}: {inner_error}")
+    except Exception as e:
+        logger.warning(f"archive_stream_link failed: {e}")
+
+
 async def send_stream_link(sender, message, caption_prefix="🎬 **Stream Link:**"):
     """Post the uploaded message to the public stream channel and send the
     streamable link(s) back to the user as an extra message.
@@ -147,6 +182,7 @@ async def handle_direct_media(client, message):
             return
 
         append_stream_link(saved['player_url'], saved['stream_url'], label="direct_media")
+        await archive_stream_link(message, saved['player_url'], saved['stream_url'])
 
         text = (
             "🎬 **Stream link ready**\n\n"
@@ -168,6 +204,8 @@ async def handle_direct_media(client, message):
 @app.on_message(filters.forwarded)
 async def handle_forwarded_media(client, message):
     """Generate stream links for forwarded media messages as well."""
+    if not has_media_payload(message):
+        return
     await handle_direct_media(client, message)
 
 

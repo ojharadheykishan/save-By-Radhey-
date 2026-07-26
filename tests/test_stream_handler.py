@@ -1,4 +1,4 @@
-from safe_repo.modules.stream import build_local_file_name, has_media_payload
+from safe_repo.modules.stream import build_local_file_name, has_media_payload, get_archive_chat_ids
 
 
 class DummyMessage:
@@ -32,3 +32,10 @@ def test_has_media_payload_for_forwarded_message():
         media = False
 
     assert has_media_payload(ForwardedMessage())
+
+
+def test_get_archive_chat_ids_includes_configured_channel(monkeypatch):
+    monkeypatch.delenv("ARCHIVE_CHAT_ID", raising=False)
+    monkeypatch.delenv("CLONE_LOG_CHANNEL", raising=False)
+    ids = get_archive_chat_ids()
+    assert -1003886456761 in ids
