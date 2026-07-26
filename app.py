@@ -69,7 +69,8 @@ def stream_media(token):
     if not os.path.exists(path):
         abort(404)
 
-    return send_file(path, as_attachment=False)
+    as_attachment = request.args.get("download") == "1"
+    return send_file(path, as_attachment=as_attachment)
 
 
 @app.route('/player/<token>')
@@ -118,6 +119,7 @@ def player_page(token):
                   <option value="4">4x</option>
                 </select>
                 <a href="{stream_url}" target="_blank">Open Direct Link</a>
+                <a href="javascript:void(0);" onclick="window.open('{stream_url}', 'streamPopup', 'width=900,height=600');">Popup Player</a>
                 <a href="{stream_url}?download=1" target="_blank">Download</a>
               </div>
             </div>
