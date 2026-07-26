@@ -3,7 +3,7 @@ import time
 import threading
 import requests
 from flask import Flask, send_file, abort, request, render_template_string
-from safe_repo.core.media_links import get_stream_file, read_stream_entries
+from safe_repo.core.media_links import get_stream_file, read_stream_entries, get_stream_entry
 
 app = Flask(__name__)
 

@@ -663,7 +663,6 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id, is_batc
 
             # Extra: post to public stream channel and send user a stream link
             asyncio.create_task(share_stream_link(sender, result))
-            asyncio.create_task(notify_stream_links(sender, file_path))
 
         if msg.pinned_message:
             try:
