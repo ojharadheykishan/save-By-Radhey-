@@ -9,6 +9,10 @@ from typing import Optional, Dict, List
 _STREAM_CACHE_DIR = None
 
 
+def _get_shared_repo_dir():
+    return Path(__file__).resolve().parent / "mongo"
+
+
 def _get_cache_dir(cache_dir=None):
     global _STREAM_CACHE_DIR
 
@@ -97,9 +101,9 @@ def get_archive_path(archive_path=None):
     if env_path:
         return str(Path(env_path).expanduser())
 
-    cache_dir = Path(_get_cache_dir())
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    return str(cache_dir / "stream_links.txt")
+    repo_dir = _get_shared_repo_dir()
+    repo_dir.mkdir(parents=True, exist_ok=True)
+    return str(repo_dir / "stream_links.txt")
 
 
 def get_catalog_path(catalog_path=None):
@@ -111,9 +115,9 @@ def get_catalog_path(catalog_path=None):
     if env_path:
         return str(Path(env_path).expanduser())
 
-    cache_dir = Path(_get_cache_dir())
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    return str(cache_dir / "stream_catalog.json")
+    repo_dir = _get_shared_repo_dir()
+    repo_dir.mkdir(parents=True, exist_ok=True)
+    return str(repo_dir / "stream_catalog.json")
 
 
 def append_stream_link(player_url, stream_url, label="stream", archive_path=None, catalog_path=None, subject=None, description=None, title=None, token=None):

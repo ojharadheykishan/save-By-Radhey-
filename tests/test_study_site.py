@@ -1,6 +1,13 @@
 import json
 import os
+import sys
+from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import safe_repo.core.media_links as media_links
 from safe_repo.web.study import build_public_study_url, build_video_index, load_catalog_entries
 
 
@@ -98,6 +105,31 @@ def test_build_video_index_filters_by_subject_and_date(tmp_path):
 def test_build_public_study_url_includes_filters():
     url = build_public_study_url("https://example.com", subject="Physics", date="2026-08-02", q="motion")
     assert url == "https://example.com/study?subject=Physics&date=2026-08-02&q=motion"
+
+
+def test_append_stream_link_is_visible_to_study_catalog_by_default(monkeypatch, tmp_path):
+    monkeypatch.delenv("STREAM_CATALOG_FILE", raising=False)
+    monkeypatch.setattr(media_links, "_STREAM_CACHE_DIR", str(tmp_path / "cache"))
+
+    catalog_path = Path("safe_repo/core/mongo/stream_catalog.json")
+    backup_text = catalog_path.read_text(encoding="utf-8") if catalog_path.exists() else None
+
+    try:
+        media_links.append_stream_link(
+            "https://example.com/player/test",
+            "https://example.com/stream/test",
+            subject="Physics",
+            description="Forwarded task media",
+            title="Task Media",
+            token="task-token",
+        )
+        entries = load_catalog_entries()
+        assert any(entry.get("token") == "task-token" for entry in entries)
+    finally:
+        if backup_text is None:
+            catalog_path.unlink(missing_ok=True)
+        else:
+            catalog_path.write_text(backup_text, encoding="utf-8")
 
 
 def test_build_video_index_groups_videos_by_folder_from_description(tmp_path):
