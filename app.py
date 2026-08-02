@@ -213,7 +213,7 @@ def player_page(token):
     title = entry_meta.get('title') if entry_meta else 'Media Player'
     description = entry_meta.get('description') if entry_meta else ''
     subject = entry_meta.get('subject') if entry_meta else 'General'
-    return f"""
+    html = f"""
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -268,7 +268,8 @@ def player_page(token):
         </script>
       </body>
     </html>
-    """, 200, {{"Content-Type": "text/html; charset=utf-8"}}
+    """
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 def start_bot_process():

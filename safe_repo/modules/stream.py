@@ -253,10 +253,8 @@ async def send_stream_link(sender, message, caption_prefix="🎬 **Stream Link:*
             return
         text = (
             f"{caption_prefix}\n"
-            f"🔗 {result['link']}\n\n"
-            "📺 **VLC / MX Player mein chalane ke liye:**\n"
-            f"`{result['embed']}`\n\n"
-            "Is link ko copy karke MX Player / VLC ke 'Network Stream' ya 'URL' box mein paste karein."
+            f"🔗 Direct link: {result['link']}\n\n"
+            "Is link ko VLC / MX Player ya kisi bhi media player mein open kar sakte ho."
         )
         await app.send_message(chat_id=sender, text=text)
     except Exception as e:
