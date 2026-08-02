@@ -107,6 +107,11 @@ def test_build_public_study_url_includes_filters():
     assert url == "https://example.com/study?subject=Physics&date=2026-08-02&q=motion"
 
 
+def test_build_public_study_url_defaults_to_home_page_when_no_filters():
+    url = build_public_study_url("https://example.com")
+    assert url == "https://example.com/"
+
+
 def test_append_stream_link_is_visible_to_study_catalog_by_default(monkeypatch, tmp_path):
     monkeypatch.delenv("STREAM_CATALOG_FILE", raising=False)
     monkeypatch.setattr(media_links, "_STREAM_CACHE_DIR", str(tmp_path / "cache"))

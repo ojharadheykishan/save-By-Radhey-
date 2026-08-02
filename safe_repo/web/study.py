@@ -39,8 +39,8 @@ def _build_watch_url(token: str) -> str:
 
 
 def build_public_study_url(base_url: str, subject: Optional[str] = None, date: Optional[str] = None, q: Optional[str] = None) -> str:
-    """Build a public study URL that can filter the catalog by subject/date/search."""
-    base = (base_url or "/study").rstrip("/")
+    """Build a public study URL that defaults to the home page and only uses /study when filters are present."""
+    base = (base_url or "/").rstrip("/")
     params = {}
     if subject:
         params["subject"] = subject
@@ -48,8 +48,10 @@ def build_public_study_url(base_url: str, subject: Optional[str] = None, date: O
         params["date"] = date
     if q:
         params["q"] = q
+
     if not params:
-        return f"{base}/study"
+        return f"{base}/"
+
     if base.endswith("/study"):
         return f"{base}?{urlencode(params)}"
     return f"{base}/study?{urlencode(params)}"

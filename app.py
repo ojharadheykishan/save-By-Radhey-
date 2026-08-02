@@ -54,8 +54,9 @@ def home():
           .card { background:#111827; border:1px solid #334155; border-radius:16px; padding:16px; }
           .pill { display:inline-block; background:#2563eb; padding:4px 8px; border-radius:999px; font-size:0.8rem; margin-right:6px; margin-bottom:6px; }
           .muted { color:#94a3b8; font-size:0.92rem; }
-          .video-list { display:grid; gap:14px; margin-top:16px; }
-          .video-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px; background:#111827; border:1px solid #334155; border-radius:12px; }
+          .video-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); margin-top:16px; }
+          .video-item { display:flex; flex-direction:column; gap:10px; padding:14px; background:#111827; border:1px solid #334155; border-radius:14px; min-height:180px; }
+          .thumb { height:110px; border-radius:10px; background:linear-gradient(135deg,#1d4ed8,#0f766e); display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:white; font-weight:700; }
           .actions a { color:#93c5fd; text-decoration:none; margin-right:8px; }
           .section { margin-top:24px; }
           a { color:#93c5fd; }
@@ -82,59 +83,38 @@ def home():
             </div>
           </div>
 
-          <div class="section">
-            <h2>Featured</h2>
-            {% if featured %}
-              {% for item in featured %}
-                <div class="video-item">
-                  <div>
-                    <strong>{{ item.title }}</strong>
-                    <div class="muted">{{ item.subject }} · {{ item.category }}</div>
-                  </div>
-                  <div class="actions">
-                    <a href="{{ item.watch_url }}">Watch</a>
-                    <a href="{{ item.player_url }}">Player</a>
+          {% if subjects %}
+            {% for subject in subjects %}
+              {% set subject_videos = [] %}
+              {% for item in videos if item.subject == subject.name %}
+                {% set _ = subject_videos.append(item) %}
+              {% endfor %}
+              {% if subject_videos %}
+                <div class="section">
+                  <h2>{{ subject.name }}</h2>
+                  <div class="video-grid">
+                    {% for item in subject_videos[:6] %}
+                      <div class="video-item">
+                        <div class="thumb">{{ subject.name[:2].upper() }}</div>
+                        <div>
+                          <strong>{{ item.title }}</strong>
+                          <div class="muted">{{ (item.description or 'Study video')[:120] }}{% if item.description and item.description|length > 120 %}...{% endif %}</div>
+                        </div>
+                        <div class="actions">
+                          <a href="{{ item.watch_url }}">Watch</a>
+                          <a href="{{ item.player_url }}">Player</a>
+                        </div>
+                      </div>
+                    {% endfor %}
                   </div>
                 </div>
-              {% endfor %}
-            {% else %}
-              <div class="card">No featured videos yet.</div>
-            {% endif %}
-          </div>
-
-          <div class="section">
-            <h2>Latest</h2>
-            <div class="video-list">
-              {% for item in latest %}
-                <div class="video-item">
-                  <div>
-                    <strong>{{ item.title }}</strong>
-                    <div class="muted">{{ item.description or 'Study video' }}</div>
-                  </div>
-                  <div class="actions">
-                    <a href="{{ item.watch_url }}">Watch</a>
-                  </div>
-                </div>
-              {% endfor %}
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <div class="section">
+              <div class="card">No videos yet.</div>
             </div>
-          </div>
-
-          <div class="section">
-            <h2>Trending</h2>
-            <div class="video-list">
-              {% for item in trending %}
-                <div class="video-item">
-                  <div>
-                    <strong>{{ item.title }}</strong>
-                    <div class="muted">{{ item.views }} views · {{ item.subject }}</div>
-                  </div>
-                  <div class="actions">
-                    <a href="{{ item.watch_url }}">Watch</a>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          </div>
+          {% endif %}
         </div>
       </body>
     </html>
