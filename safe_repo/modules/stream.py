@@ -226,8 +226,26 @@ def build_public_study_link(metadata=None, base_url=None):
     subject = str(metadata.get("subject") or "").strip() or None
     date = str(metadata.get("date") or "").strip() or None
     title = str(metadata.get("title") or "").strip() or None
-    base_url = base_url or os.environ.get("PUBLIC_BASE_URL") or os.environ.get("APP_URL") or os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("BASE_URL") or "http://127.0.0.1:5000"
-    return build_public_study_url(base_url, subject=subject, date=date, q=title)
+
+    if not base_url:
+        base_url = (
+            os.environ.get("PUBLIC_BASE_URL")
+            or os.environ.get("APP_URL")
+            or os.environ.get("RENDER_EXTERNAL_URL")
+            or os.environ.get("BASE_URL")
+            or "https://save-by-radhey.onrender.com"
+        ).strip()
+
+    if subject and date and title:
+        return build_public_study_url(base_url, subject=subject, date=date, q=title)
+
+    if subject and date:
+        return build_public_study_url(base_url, subject=subject, date=date)
+
+    if subject:
+        return build_public_study_url(base_url, subject=subject)
+
+    return build_public_study_url(base_url)
 
 
 def build_stream_reply_text(public_link, study_url=None):
