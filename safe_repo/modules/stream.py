@@ -6,10 +6,12 @@
 import logging
 import os
 import uuid
+from datetime import datetime
 from pyrogram import filters
 from safe_repo import app
 from config import STREAM_CHANNEL, STREAM_CHANNEL_USERNAME, CLONE_LOG_CHANNEL
 from safe_repo.core.media_links import append_stream_link, save_stream_file, read_stream_links
+from safe_repo.web.study import build_public_study_url
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,7 @@ def extract_stream_metadata(message, fallback_title=None):
     title = fallback_title or "Untitled"
     description = caption
     subject = "General"
+    date = datetime.now().strftime("%Y-%m-%d")
 
     if caption:
         lines = [line.strip() for line in caption.splitlines() if line.strip()]
@@ -75,7 +78,7 @@ def extract_stream_metadata(message, fallback_title=None):
                 subject = line.split(":", 1)[1].strip() or subject
                 break
 
-    return {"subject": subject, "description": description, "title": title}
+    return {"subject": subject, "description": description, "title": title, "date": date}
 
 
 def build_local_file_name(message):
@@ -217,7 +220,39 @@ async def build_public_stream_link(message, media_file=None):
     return None
 
 
-async def archive_stream_link(message, player_url, stream_url):
+def build_public_study_link(metadata=None, base_url=None):
+    """Create a public study-site URL that can jump to the subject/date catalog view."""
+    metadata = metadata or {}
+    subject = str(metadata.get("subject") or "").strip() or None
+    date = str(metadata.get("date") or "").strip() or None
+    title = str(metadata.get("title") or "").strip() or None
+    base_url = base_url or os.environ.get("PUBLIC_BASE_URL") or os.environ.get("APP_URL") or os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("BASE_URL") or "http://127.0.0.1:5000"
+    return build_public_study_url(base_url, subject=subject, date=date, q=title)
+
+
+def build_stream_reply_text(public_link, study_url=None):
+    """Build a Telegram reply that includes both player and website links."""
+    lines = [
+        "✅ **Stream link ready**",
+        "",
+        f"📺 Player: {public_link['player_url']}",
+        f"🔗 Direct Stream: {public_link['stream_url']}",
+    ]
+    if study_url:
+        lines.extend([
+            "",
+            f"🌐 Website link: {study_url}",
+            "Is website link par click karke subject/date wise videos dekh sakte ho.",
+        ])
+    else:
+        lines.extend([
+            "",
+            "🌐 Website link abhi generate nahi ho saka."
+        ])
+    return "\n".join(lines)
+
+
+async def archive_stream_link(message, player_url, stream_url, study_url=None):
     """Send the generated stream links to the configured archive chats."""
     try:
         text = (
@@ -225,6 +260,8 @@ async def archive_stream_link(message, player_url, stream_url):
             f"📺 Player: {player_url}\n"
             f"🔗 Stream: {stream_url}"
         )
+        if study_url:
+            text = text + f"\n🌐 Study site: {study_url}"
         for chat_id in get_archive_chat_ids():
             if not chat_id:
                 continue
@@ -306,6 +343,7 @@ async def handle_direct_media(client, message):
             return
 
         metadata = extract_stream_metadata(message, fallback_title=os.path.basename(media_file))
+        study_url = build_public_study_link(metadata)
         append_stream_link(
             public_link['player_url'],
             public_link['stream_url'],
@@ -315,22 +353,9 @@ async def handle_direct_media(client, message):
             title=metadata['title'],
             token=public_link.get('token'),
         )
-        await archive_stream_link(message, public_link['player_url'], public_link['stream_url'])
+        await archive_stream_link(message, public_link['player_url'], public_link['stream_url'], study_url=study_url)
 
-        if public_link.get('source') == 'channel':
-            text = (
-                "✅ **Stream link ready**\n\n"
-                f"📺 Player: {public_link['player_url']}\n"
-                f"🔗 Direct Stream: {public_link['stream_url']}\n\n"
-                "Ye link Telegram public channel post se generate hui hai, isko VLC / MX Player me open kar sakte ho."
-            )
-        else:
-            text = (
-                "✅ **Stream link ready**\n\n"
-                f"📺 Player: {public_link['player_url']}\n"
-                f"🔗 Direct Stream: {public_link['stream_url']}\n\n"
-                "Is link ko VLC / MX Player me open karo."
-            )
+        text = build_stream_reply_text(public_link, study_url=study_url)
         await app.edit_message_text(chat_id, status_message.id, text)
 
         try:
