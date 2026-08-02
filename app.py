@@ -3,8 +3,9 @@ import time
 import threading
 import mimetypes
 import requests
-from flask import Flask, send_file, abort, request, render_template_string
+from flask import Flask, send_file, abort, redirect, request, render_template_string
 from safe_repo.core.media_links import get_stream_file, read_stream_entries, get_stream_entry
+from safe_repo.web.study import build_public_study_url, build_video_index, load_catalog_entries
 
 app = Flask(__name__)
 
@@ -27,30 +28,300 @@ def auto_ping():
 
 @app.route('/')
 def home():
-    return """
-    <center>
-        <!-- Safe_repo -->
-    </center>
-    <style>
-        body {
-            background: antiquewhite;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 100vh;
-            margin: 0;
-        }
-        footer {
-            text-align: center;
-            padding: 10px;
-            background: antiquewhite;
-            font-size: 1.2em;
-        }
-    </style>
-    <footer>
-        Made with 💕 by t.me/Safe_repo
-    </footer>
-    """
+    index = build_video_index()
+    videos = index.get("videos", [])
+    featured = index.get("featured", [])
+    latest = index.get("latest", [])
+    trending = index.get("trending", [])
+    subjects = index.get("subjects", [])
+
+    return render_template_string("""
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>StudyHub by Safe Repo</title>
+        <style>
+          :root { color-scheme: dark; }
+          body { margin:0; font-family:Inter, Arial, sans-serif; background:linear-gradient(135deg,#020617,#111827 50%,#0f172a); color:#f8fafc; }
+          .wrap { max-width: 1220px; margin:0 auto; padding:24px; }
+          .hero { padding:36px; border-radius:24px; background:rgba(15,23,42,0.9); border:1px solid #334155; box-shadow:0 20px 45px rgba(0,0,0,0.25); }
+          .hero h1 { margin:0 0 8px; font-size:2rem; }
+          .hero p { color:#cbd5e1; margin:0 0 16px; }
+          .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+          .card { background:#111827; border:1px solid #334155; border-radius:16px; padding:16px; }
+          .pill { display:inline-block; background:#2563eb; padding:4px 8px; border-radius:999px; font-size:0.8rem; margin-right:6px; margin-bottom:6px; }
+          .muted { color:#94a3b8; font-size:0.92rem; }
+          .video-list { display:grid; gap:14px; margin-top:16px; }
+          .video-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px; background:#111827; border:1px solid #334155; border-radius:12px; }
+          .actions a { color:#93c5fd; text-decoration:none; margin-right:8px; }
+          .section { margin-top:24px; }
+          a { color:#93c5fd; }
+        </style>
+      </head>
+      <body>
+        <div class="wrap">
+          <div class="hero">
+            <h1>StudyHub by Safe Repo</h1>
+            <p>Premium study videos, subject-wise playlists, and instant public playback links from the same media archive.</p>
+            <div class="grid">
+              <div class="card">
+                <div><strong>{{ videos|length }}</strong></div>
+                <div class="muted">Saved study videos</div>
+              </div>
+              <div class="card">
+                <div><strong>{{ subjects|length }}</strong></div>
+                <div class="muted">Subject categories</div>
+              </div>
+              <div class="card">
+                <div><strong>{{ featured|length }}</strong></div>
+                <div class="muted">Featured picks</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2>Featured</h2>
+            {% if featured %}
+              {% for item in featured %}
+                <div class="video-item">
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">{{ item.subject }} · {{ item.category }}</div>
+                  </div>
+                  <div class="actions">
+                    <a href="{{ item.watch_url }}">Watch</a>
+                    <a href="{{ item.player_url }}">Player</a>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="card">No featured videos yet.</div>
+            {% endif %}
+          </div>
+
+          <div class="section">
+            <h2>Latest</h2>
+            <div class="video-list">
+              {% for item in latest %}
+                <div class="video-item">
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">{{ item.description or 'Study video' }}</div>
+                  </div>
+                  <div class="actions">
+                    <a href="{{ item.watch_url }}">Watch</a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="section">
+            <h2>Trending</h2>
+            <div class="video-list">
+              {% for item in trending %}
+                <div class="video-item">
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">{{ item.views }} views · {{ item.subject }}</div>
+                  </div>
+                  <div class="actions">
+                    <a href="{{ item.watch_url }}">Watch</a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects)
+
+
+@app.route('/study')
+def study_home():
+    """Public study-platform landing page built from the stream catalog."""
+    subject_filter = (request.args.get('subject') or '').strip()
+    date_filter = (request.args.get('date') or '').strip()
+    search_query = (request.args.get('q') or '').strip()
+    index = build_video_index(subject=subject_filter, date=date_filter, q=search_query)
+    videos = index.get("videos", [])
+    featured = index.get("featured", [])
+    latest = index.get("latest", [])
+    trending = index.get("trending", [])
+    subjects = index.get("subjects", [])
+    categories = index.get("categories", [])
+    folders = index.get("folders", [])
+    filter_summary = index.get("filter_summary", {})
+
+    return render_template_string("""
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Study Platform</title>
+        <style>
+          body { margin:0; font-family:Inter, Arial, sans-serif; background:#0f172a; color:#f8fafc; }
+          .wrap { max-width: 1200px; margin:0 auto; padding:24px; }
+          .hero { padding:28px; border-radius:24px; background:linear-gradient(135deg,#1d4ed8,#2563eb); box-shadow:0 20px 45px rgba(0,0,0,0.24); }
+          .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+          .card { background:#111827; border:1px solid #334155; border-radius:18px; padding:16px; }
+          .card h3 { margin-top:0; }
+          .pill { display:inline-block; background:#1d4ed8; padding:4px 8px; border-radius:999px; font-size:0.8rem; margin:4px 4px 0 0; }
+          .pill.secondary { background:#0f766e; }
+          .list a { color:#93c5fd; text-decoration:none; display:block; padding:6px 0; border-bottom:1px solid #1f2937; }
+          .list a:last-child { border-bottom:none; }
+          .stat { font-size:1.2rem; font-weight:bold; }
+          .muted { color:#94a3b8; font-size:0.92rem; }
+        </style>
+      </head>
+      <body>
+        <div class="wrap">
+          <div class="hero">
+            <h1>Study Platform</h1>
+            <p>Browse videos by subject, folder, category, and recent uploads in one clean place.</p>
+            <form method="get" action="/study" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+              <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Search title / topic" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:220px;" />
+              <input type="text" name="subject" value="{{ request.args.get('subject','') }}" placeholder="Subject" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:140px;" />
+              <input type="text" name="date" value="{{ request.args.get('date','') }}" placeholder="Date (YYYY-MM-DD)" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:160px;" />
+              <button type="submit" style="padding:10px 14px; border-radius:8px; border:none; background:#0f172a; color:white;">Filter</button>
+              <a href="/study" style="padding:10px 14px; border-radius:8px; background:#1d4ed8; color:white; text-decoration:none;">Clear</a>
+            </form>
+            {% if filter_summary.subject or filter_summary.date or filter_summary.q %}
+            <p style="margin-top:10px; color:#e2e8f0;">Showing results for: {% if filter_summary.subject %}subject={{ filter_summary.subject }}{% endif %}{% if filter_summary.date %} · date={{ filter_summary.date }}{% endif %}{% if filter_summary.q %} · search={{ filter_summary.q }}{% endif %}</p>
+            {% endif %}
+          </div>
+          <div class="grid">
+            <div class="card">
+              <h3>Subjects</h3>
+              {% for subject in subjects %}
+                <span class="pill">{{ subject.name }} ({{ subject.count }})</span>
+              {% endfor %}
+            </div>
+            <div class="card">
+              <h3>Categories</h3>
+              {% for category in categories %}
+                <span class="pill secondary">{{ category.name }} ({{ category.count }})</span>
+              {% endfor %}
+            </div>
+            <div class="card">
+              <h3>Folders</h3>
+              {% for folder in folders %}
+                <span class="pill">{{ folder.name }} ({{ folder.count }})</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="grid" style="margin-top:16px;">
+            <div class="card">
+              <h3>Videos</h3>
+              <div class="list">
+                {% for item in videos %}
+                  <a href="{{ item.watch_url }}">
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">{{ item.subject }} · {{ item.folder or 'General' }}</div>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="card">
+              <h3>Featured</h3>
+              <div class="list">
+                {% for item in featured %}
+                  <a href="{{ item.watch_url }}">
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">⭐ Featured · {{ item.subject }}</div>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="card">
+              <h3>Latest</h3>
+              <div class="list">
+                {% for item in latest %}
+                  <a href="{{ item.watch_url }}">
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">🕒 {{ item.date or item.timestamp }}</div>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="card">
+              <h3>Trending</h3>
+              <div class="list">
+                {% for item in trending %}
+                  <a href="{{ item.watch_url }}">
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">🔥 {{ item.views }} views</div>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects, categories=categories, folders=folders, filter_summary=filter_summary, request=request)
+
+
+@app.route('/go')
+def public_study_redirect():
+    """Redirect to the public study catalog, optionally pre-filtered by subject/date/query."""
+    subject = (request.args.get('subject') or '').strip()
+    date = (request.args.get('date') or '').strip()
+    q = (request.args.get('q') or '').strip()
+    target = build_public_study_url(request.url_root, subject=subject, date=date, q=q)
+    return redirect(target, code=302)
+
+
+@app.route('/study/watch/<token>')
+def study_watch_page(token):
+    """Watch page for a study video using the public stream and player links."""
+    video = None
+    for entry in load_catalog_entries():
+        if str(entry.get("token")) == str(token):
+            video = entry
+            break
+
+    if not video:
+        abort(404)
+
+    return render_template_string("""
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{{ video.title }}</title>
+        <style>
+          body { margin:0; font-family:Inter, Arial, sans-serif; background:#020617; color:#f8fafc; }
+          .wrap { max-width: 980px; margin:0 auto; padding:24px; }
+          .player { border-radius:18px; overflow:hidden; background:#111827; border:1px solid #334155; }
+          video { width:100%; height:auto; display:block; background:#000; }
+          .meta { padding:16px; background:#111827; border-top:1px solid #334155; }
+          .pill { display:inline-block; background:#2563eb; padding:4px 8px; border-radius:999px; font-size:0.8rem; margin-right:6px; }
+          a { color:#93c5fd; }
+        </style>
+      </head>
+      <body>
+        <div class="wrap">
+          <div class="player">
+            <video controls autoplay playsinline>
+              <source src="{{ video.stream_url }}" />
+            </video>
+          </div>
+          <div class="meta">
+            <h1>{{ video.title }}</h1>
+            <div>
+              <span class="pill">{{ video.subject }}</span>
+              <span class="pill">{{ video.category }}</span>
+            </div>
+            <p>{{ video.description or 'Study video from the Safe Repo media archive.' }}</p>
+            <p><a href="{{ video.player_url }}" target="_blank">Open player page</a> · <a href="{{ video.stream_url }}" target="_blank">Open direct stream</a></p>
+          </div>
+        </div>
+      </body>
+    </html>
+    """, video=video)
 
 
 @app.route('/health')

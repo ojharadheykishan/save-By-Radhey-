@@ -1,0 +1,121 @@
+import json
+import os
+
+from safe_repo.web.study import build_public_study_url, build_video_index, load_catalog_entries
+
+
+def test_load_catalog_entries_normalizes_video_metadata(tmp_path):
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(json.dumps([
+        {
+            "token": "abc123",
+            "title": "Motion Chapter 1",
+            "description": "Study video",
+            "subject": "Physics",
+            "category": "Class 11",
+            "player_url": "https://example.com/player/abc123",
+            "stream_url": "https://example.com/stream/abc123",
+            "timestamp": "2026-08-02 10:00:00"
+        }
+    ]), encoding="utf-8")
+
+    entries = load_catalog_entries(str(catalog_path))
+    assert len(entries) == 1
+    assert entries[0]["watch_url"].endswith("/watch/abc123")
+    assert entries[0]["subject"] == "Physics"
+    assert entries[0]["category"] == "Class 11"
+
+
+def test_build_video_index_groups_latest_and_featured(tmp_path):
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(json.dumps([
+        {
+            "token": "one",
+            "title": "Alpha",
+            "description": "A",
+            "subject": "Physics",
+            "category": "Class 11",
+            "player_url": "https://example.com/player/one",
+            "stream_url": "https://example.com/stream/one",
+            "timestamp": "2026-08-02 10:00:00",
+            "featured": True,
+            "trending": True,
+            "views": 12
+        },
+        {
+            "token": "two",
+            "title": "Beta",
+            "description": "B",
+            "subject": "Chemistry",
+            "category": "Class 12",
+            "player_url": "https://example.com/player/two",
+            "stream_url": "https://example.com/stream/two",
+            "timestamp": "2026-08-02 11:00:00",
+            "views": 5
+        }
+    ]), encoding="utf-8")
+
+    index = build_video_index(str(catalog_path))
+    assert index["featured"][0]["token"] == "one"
+    assert index["latest"][0]["token"] == "two"
+    assert index["trending"][0]["token"] == "one"
+    assert index["subjects"][0]["name"] == "Physics"
+
+
+def test_build_video_index_filters_by_subject_and_date(tmp_path):
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(json.dumps([
+        {
+            "token": "one",
+            "title": "Alpha",
+            "description": "A",
+            "subject": "Physics",
+            "category": "Class 11",
+            "player_url": "https://example.com/player/one",
+            "stream_url": "https://example.com/stream/one",
+            "timestamp": "2026-08-02 10:00:00",
+            "date": "2026-08-02"
+        },
+        {
+            "token": "two",
+            "title": "Beta",
+            "description": "B",
+            "subject": "Chemistry",
+            "category": "Class 12",
+            "player_url": "https://example.com/player/two",
+            "stream_url": "https://example.com/stream/two",
+            "timestamp": "2026-08-03 11:00:00",
+            "date": "2026-08-03"
+        }
+    ]), encoding="utf-8")
+
+    index = build_video_index(str(catalog_path), subject="Physics", date="2026-08-02")
+    assert [video["token"] for video in index["videos"]] == ["one"]
+    assert index["filter_summary"]["subject"] == "Physics"
+    assert index["filter_summary"]["date"] == "2026-08-02"
+
+
+def test_build_public_study_url_includes_filters():
+    url = build_public_study_url("https://example.com", subject="Physics", date="2026-08-02", q="motion")
+    assert url == "https://example.com/study?subject=Physics&date=2026-08-02&q=motion"
+
+
+def test_build_video_index_groups_videos_by_folder_from_description(tmp_path):
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(json.dumps([
+        {
+            "token": "one",
+            "title": "Alpha",
+            "description": "Folder: Mechanics\nStudy video",
+            "subject": "Physics",
+            "category": "Class 11",
+            "player_url": "https://example.com/player/one",
+            "stream_url": "https://example.com/stream/one",
+            "timestamp": "2026-08-02 10:00:00",
+            "date": "2026-08-02"
+        }
+    ]), encoding="utf-8")
+
+    index = build_video_index(str(catalog_path))
+    assert index["folders"][0]["name"] == "Mechanics"
+    assert index["folders"][0]["count"] == 1
