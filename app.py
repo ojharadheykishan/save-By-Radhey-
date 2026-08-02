@@ -46,20 +46,27 @@ def home():
         <style>
           :root { color-scheme: dark; }
           body { margin:0; font-family:Inter, Arial, sans-serif; background:linear-gradient(135deg,#020617,#111827 50%,#0f172a); color:#f8fafc; }
-          .wrap { max-width: 1220px; margin:0 auto; padding:24px; }
-          .hero { padding:36px; border-radius:24px; background:rgba(15,23,42,0.9); border:1px solid #334155; box-shadow:0 20px 45px rgba(0,0,0,0.25); }
+          .wrap { max-width: 1280px; margin:0 auto; padding:24px; }
+          .hero { padding:32px; border-radius:24px; background:linear-gradient(135deg,#1d4ed8,#0f766e); box-shadow:0 20px 45px rgba(0,0,0,0.25); }
           .hero h1 { margin:0 0 8px; font-size:2rem; }
-          .hero p { color:#cbd5e1; margin:0 0 16px; }
-          .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
-          .card { background:#111827; border:1px solid #334155; border-radius:16px; padding:16px; }
-          .pill { display:inline-block; background:#2563eb; padding:4px 8px; border-radius:999px; font-size:0.8rem; margin-right:6px; margin-bottom:6px; }
+          .hero p { color:#e2e8f0; margin:0 0 16px; }
+          .search-box { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+          .search-box input { flex:1; min-width:220px; padding:12px 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.16); color:white; }
+          .search-box button { padding:12px 16px; border-radius:999px; border:none; background:#fff; color:#0f172a; font-weight:700; }
+          .stats { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-top:18px; }
+          .card { background:rgba(15,23,42,0.86); border:1px solid rgba(148,163,184,0.2); border-radius:18px; padding:16px; backdrop-filter:blur(8px); }
+          .pill { display:inline-block; background:linear-gradient(135deg,#2563eb,#0ea5e9); padding:6px 10px; border-radius:999px; font-size:0.8rem; margin-right:6px; margin-bottom:6px; font-weight:600; }
           .muted { color:#94a3b8; font-size:0.92rem; }
-          .video-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); margin-top:16px; }
-          .video-item { display:flex; flex-direction:column; gap:10px; padding:14px; background:#111827; border:1px solid #334155; border-radius:14px; min-height:180px; }
-          .thumb { height:110px; border-radius:10px; background:linear-gradient(135deg,#1d4ed8,#0f766e); display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:white; font-weight:700; }
-          .actions a { color:#93c5fd; text-decoration:none; margin-right:8px; }
+          .featured { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin-top:16px; }
+          .featured-card { padding:16px; background:linear-gradient(135deg,#111827,#0f172a); border:1px solid rgba(148,163,184,0.2); border-radius:18px; }
+          .thumb { height:136px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:700; color:white; margin-bottom:12px; background:linear-gradient(135deg,#7c3aed,#2563eb); }
           .section { margin-top:24px; }
+          .subject-banner { padding:16px 18px; border-radius:16px; background:linear-gradient(135deg,#111827,#1e293b); border:1px solid rgba(148,163,184,0.2); margin-bottom:14px; }
+          .video-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+          .video-item { display:flex; flex-direction:column; gap:10px; padding:14px; background:#111827; border:1px solid rgba(148,163,184,0.2); border-radius:14px; min-height:190px; }
+          .actions a { color:#93c5fd; text-decoration:none; margin-right:8px; }
           a { color:#93c5fd; }
+          .theme-note { font-size:0.84rem; color:#cbd5e1; margin-top:6px; }
         </style>
       </head>
       <body>
@@ -67,7 +74,11 @@ def home():
           <div class="hero">
             <h1>StudyHub by Safe Repo</h1>
             <p>Premium study videos, subject-wise playlists, and instant public playback links from the same media archive.</p>
-            <div class="grid">
+            <form class="search-box" action="/study" method="get">
+              <input type="text" name="q" placeholder="Search chapters, topics, or subjects" />
+              <button type="submit">Search</button>
+            </form>
+            <div class="stats">
               <div class="card">
                 <div><strong>{{ videos|length }}</strong></div>
                 <div class="muted">Saved study videos</div>
@@ -83,6 +94,28 @@ def home():
             </div>
           </div>
 
+          <div class="section">
+            <h2>Featured</h2>
+            <div class="featured">
+              {% if featured %}
+                {% for item in featured %}
+                  <div class="featured-card">
+                    <div class="thumb">{{ (item.subject or 'Study')[:2].upper() }}</div>
+                    <strong>{{ item.title }}</strong>
+                    <div class="muted">{{ item.subject }} · {{ item.category }}</div>
+                    <div class="theme-note">Popular pick for quick revision and revision notes.</div>
+                    <div class="actions" style="margin-top:10px;">
+                      <a href="{{ item.watch_url }}">Watch</a>
+                      <a href="{{ item.player_url }}">Player</a>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="card">No featured videos yet.</div>
+              {% endif %}
+            </div>
+          </div>
+
           {% if subjects %}
             {% for subject in subjects %}
               {% set subject_videos = [] %}
@@ -91,7 +124,10 @@ def home():
               {% endfor %}
               {% if subject_videos %}
                 <div class="section">
-                  <h2>{{ subject.name }}</h2>
+                  <div class="subject-banner">
+                    <h3 style="margin:0 0 6px;">{{ subject.name }}</h3>
+                    <div class="muted">{{ subject_videos|length }} videos • curated for focused study</div>
+                  </div>
                   <div class="video-grid">
                     {% for item in subject_videos[:6] %}
                       <div class="video-item">
