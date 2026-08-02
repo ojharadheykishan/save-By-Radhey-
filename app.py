@@ -5,9 +5,11 @@ import mimetypes
 import requests
 from flask import Flask, send_file, abort, redirect, request, render_template_string
 from safe_repo.core.media_links import get_stream_file, read_stream_entries, get_stream_entry
+from safe_repo.web.admin import admin_dashboard_view, admin_login_view, admin_logout_view, toggle_featured_view, toggle_trending_view
 from safe_repo.web.study import build_public_study_url, build_video_index, load_catalog_entries
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "study-secret-key")
 
 # Auto-ping settings
 AUTO_PING_ENABLED = True
@@ -272,6 +274,31 @@ def public_study_redirect():
     q = (request.args.get('q') or '').strip()
     target = build_public_study_url(request.url_root, subject=subject, date=date, q=q)
     return redirect(target, code=302)
+
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    return admin_login_view()
+
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    return admin_dashboard_view()
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    return admin_logout_view()
+
+
+@app.route('/admin/toggle-featured/<token>')
+def admin_toggle_featured(token):
+    return toggle_featured_view(token)
+
+
+@app.route('/admin/toggle-trending/<token>')
+def admin_toggle_trending(token):
+    return toggle_trending_view(token)
 
 
 @app.route('/study/watch/<token>')
