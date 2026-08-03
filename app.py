@@ -30,13 +30,17 @@ def auto_ping():
 
 @app.route('/')
 def home():
-    index = build_video_index()
+    subject_filter = (request.args.get('subject') or '').strip()
+    date_filter = (request.args.get('date') or '').strip()
+    search_query = (request.args.get('q') or '').strip()
+    index = build_video_index(subject=subject_filter, date=date_filter, q=search_query)
     videos = index.get("videos", [])
     featured = index.get("featured", [])
     latest = index.get("latest", [])
     trending = index.get("trending", [])
     subjects = index.get("subjects", [])
     playlists = index.get("playlists", [])
+    filter_summary = index.get("filter_summary", {})
 
     return render_template_string("""
     <html>
@@ -97,10 +101,20 @@ def home():
           <div class="hero">
             <h1>StudyHub by Safe Repo</h1>
             <p>Premium study videos, subject-wise playlists, and instant public playback links from the same media archive.</p>
-            <form class="search-box" action="/study" method="get">
+            {% if filter_summary.subject or filter_summary.date or filter_summary.q %}
+            <div class="theme-note" style="margin-bottom:10px;">Showing results for: {% if filter_summary.subject %}subject={{ filter_summary.subject }}{% endif %}{% if filter_summary.date %} · date={{ filter_summary.date }}{% endif %}{% if filter_summary.q %} · search={{ filter_summary.q }}{% endif %}</div>
+            {% endif %}
+            <form class="search-box" action="/" method="get">
               <input type="text" name="q" placeholder="Search chapters, topics, or subjects" />
               <button type="submit">Search</button>
             </form>
+            <div class="search-box" style="margin-top:14px;">
+              <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Search chapters, topics, or subjects" />
+              <input type="text" name="subject" value="{{ request.args.get('subject','') }}" placeholder="Subject" />
+              <input type="text" name="date" value="{{ request.args.get('date','') }}" placeholder="Date (YYYY-MM-DD)" />
+              <button type="submit">Apply</button>
+              <a href="/" style="padding:12px 16px; border-radius:999px; border:none; background:rgba(255,255,255,0.14); color:white; text-decoration:none; font-weight:700;">Clear</a>
+            </div>
             <div class="stats">
               <div class="card">
                 <div><strong>{{ videos|length }}</strong></div>
@@ -208,7 +222,7 @@ def home():
         </script>
       </body>
     </html>
-    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects, playlists=playlists)
+    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects, playlists=playlists, filter_summary=filter_summary, request=request)
 
 
 @app.route('/study')

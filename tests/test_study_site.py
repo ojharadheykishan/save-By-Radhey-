@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import safe_repo.core.media_links as media_links
+from app import app as flask_app
 from safe_repo.web.study import build_public_study_url, build_video_index, load_catalog_entries
 
 
@@ -31,6 +32,33 @@ def test_load_catalog_entries_normalizes_video_metadata(tmp_path):
     assert entries[0]["watch_url"].endswith("/watch/abc123")
     assert entries[0]["subject"] == "Physics"
     assert entries[0]["category"] == "Class 11"
+
+
+def test_home_route_renders_filtered_catalog_for_subject_date_queries(monkeypatch, tmp_path):
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(json.dumps([
+        {
+            "token": "one",
+            "title": "Alpha",
+            "description": "Folder: Mechanics\nStudy video",
+            "subject": "Physics",
+            "category": "Class 11",
+            "player_url": "https://example.com/player/one",
+            "stream_url": "https://example.com/stream/one",
+            "timestamp": "2026-08-02 10:00:00",
+            "date": "2026-08-02"
+        }
+    ]), encoding="utf-8")
+    monkeypatch.setenv("STREAM_CATALOG_FILE", str(catalog_path))
+
+    client = flask_app.test_client()
+    response = client.get("/?subject=Physics&date=2026-08-02&q=Alpha")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Showing results for" in html
+    assert "Physics" in html
+    assert "Alpha" in html
 
 
 def test_build_video_index_groups_latest_and_featured(tmp_path):
