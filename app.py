@@ -61,7 +61,8 @@ def home():
           .featured-card { padding:16px; background:linear-gradient(135deg,#111827,#0f172a); border:1px solid rgba(148,163,184,0.2); border-radius:18px; }
           .thumb { height:136px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:700; color:white; margin-bottom:12px; background:linear-gradient(135deg,#7c3aed,#2563eb); }
           .section { margin-top:24px; }
-          .subject-banner { padding:16px 18px; border-radius:16px; background:linear-gradient(135deg,#111827,#1e293b); border:1px solid rgba(148,163,184,0.2); margin-bottom:14px; }
+          .subject-banner { padding:16px 18px; border-radius:16px; background:linear-gradient(135deg,#111827,#1e293b); border:1px solid rgba(148,163,184,0.2); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+          .subject-banner a { color:#93c5fd; text-decoration:none; font-weight:600; }
           .video-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
           .video-item { display:flex; flex-direction:column; gap:10px; padding:14px; background:#111827; border:1px solid rgba(148,163,184,0.2); border-radius:14px; min-height:190px; }
           .actions a { color:#93c5fd; text-decoration:none; margin-right:8px; }
@@ -125,8 +126,11 @@ def home():
               {% if subject_videos %}
                 <div class="section">
                   <div class="subject-banner">
-                    <h3 style="margin:0 0 6px;">{{ subject.name }}</h3>
-                    <div class="muted">{{ subject_videos|length }} videos • curated for focused study</div>
+                    <div>
+                      <h3 style="margin:0 0 6px;">{{ subject.name }}</h3>
+                      <div class="muted">{{ subject_videos|length }} videos • curated for focused study</div>
+                    </div>
+                    <a href="/study?subject={{ subject.name|urlencode }}">Open {{ subject.name }} page</a>
                   </div>
                   <div class="video-grid">
                     {% for item in subject_videos[:6] %}
