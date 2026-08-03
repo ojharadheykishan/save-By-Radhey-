@@ -47,6 +47,10 @@ def home():
           :root { color-scheme: dark; }
           body { margin:0; font-family:Inter, Arial, sans-serif; background:linear-gradient(135deg,#020617,#111827 50%,#0f172a); color:#f8fafc; }
           .wrap { max-width: 1280px; margin:0 auto; padding:24px; }
+          .topbar { position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:12px 16px; margin:0 auto 16px; max-width:1280px; border-radius:999px; background:rgba(2,6,23,0.75); border:1px solid rgba(148,163,184,0.25); backdrop-filter:blur(12px); }
+          .topbar a { color:white; text-decoration:none; margin-right:12px; font-weight:600; }
+          .topbar .right { display:flex; align-items:center; gap:10px; }
+          .theme-toggle { border:none; border-radius:999px; padding:8px 10px; background:#2563eb; color:white; cursor:pointer; }
           .hero { padding:32px; border-radius:24px; background:linear-gradient(135deg,#1d4ed8,#0f766e); box-shadow:0 20px 45px rgba(0,0,0,0.25); }
           .hero h1 { margin:0 0 8px; font-size:2rem; }
           .hero p { color:#e2e8f0; margin:0 0 16px; }
@@ -68,9 +72,26 @@ def home():
           .actions a { color:#93c5fd; text-decoration:none; margin-right:8px; }
           a { color:#93c5fd; }
           .theme-note { font-size:0.84rem; color:#cbd5e1; margin-top:6px; }
+          body[data-theme="light"] { background:#f8fafc; color:#0f172a; }
+          body[data-theme="light"] .card,
+          body[data-theme="light"] .featured-card,
+          body[data-theme="light"] .video-item,
+          body[data-theme="light"] .subject-banner,
+          body[data-theme="light"] .hero { background:#ffffff; color:#0f172a; border-color:#dbeafe; }
+          body[data-theme="light"] .muted { color:#475569; }
+          body[data-theme="light"] .topbar { background:rgba(255,255,255,0.9); border-color:#dbeafe; }
+          body[data-theme="light"] .topbar a { color:#0f172a; }
         </style>
       </head>
       <body>
+        <div class="topbar">
+          <div><strong>StudyHub</strong></div>
+          <div class="right">
+            <a href="/">Home</a>
+            <a href="/study">Study</a>
+            <button class="theme-toggle" type="button" onclick="toggleTheme()">☀️</button>
+          </div>
+        </div>
         <div class="wrap">
           <div class="hero">
             <h1>StudyHub by Safe Repo</h1>
@@ -156,6 +177,14 @@ def home():
             </div>
           {% endif %}
         </div>
+        <script>
+        function toggleTheme() {
+          const body = document.body;
+          const next = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+          body.setAttribute('data-theme', next);
+          document.documentElement.style.colorScheme = next;
+        }
+        </script>
       </body>
     </html>
     """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects)
@@ -186,6 +215,10 @@ def study_home():
         <style>
           body { margin:0; font-family:Inter, Arial, sans-serif; background:#0f172a; color:#f8fafc; }
           .wrap { max-width: 1200px; margin:0 auto; padding:24px; }
+          .topbar { position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:12px 16px; margin:0 auto 16px; max-width:1200px; border-radius:999px; background:rgba(2,6,23,0.75); border:1px solid rgba(148,163,184,0.25); backdrop-filter:blur(12px); }
+          .topbar a { color:white; text-decoration:none; margin-right:12px; font-weight:600; }
+          .topbar .right { display:flex; align-items:center; gap:10px; }
+          .theme-toggle { border:none; border-radius:999px; padding:8px 10px; background:#2563eb; color:white; cursor:pointer; }
           .hero { padding:28px; border-radius:24px; background:linear-gradient(135deg,#1d4ed8,#2563eb); box-shadow:0 20px 45px rgba(0,0,0,0.24); }
           .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
           .card { background:#111827; border:1px solid #334155; border-radius:18px; padding:16px; }
@@ -196,13 +229,28 @@ def study_home():
           .list a:last-child { border-bottom:none; }
           .stat { font-size:1.2rem; font-weight:bold; }
           .muted { color:#94a3b8; font-size:0.92rem; }
+          body[data-theme="light"] { background:#f8fafc; color:#0f172a; }
+          body[data-theme="light"] .card,
+          body[data-theme="light"] .hero { background:#ffffff; color:#0f172a; border-color:#dbeafe; }
+          body[data-theme="light"] .muted { color:#475569; }
+          body[data-theme="light"] .topbar { background:rgba(255,255,255,0.9); border-color:#dbeafe; }
+          body[data-theme="light"] .topbar a { color:#0f172a; }
         </style>
       </head>
       <body>
+        <div class="topbar">
+          <div><strong>StudyHub</strong></div>
+          <div class="right">
+            <a href="/">Home</a>
+            <a href="/study">Study</a>
+            <button class="theme-toggle" type="button" onclick="toggleTheme()">☀️</button>
+          </div>
+        </div>
         <div class="wrap">
           <div class="hero">
             <h1>Study Platform</h1>
             <p>Browse videos by subject, folder, category, and recent uploads in one clean place.</p>
+            <div class="muted" style="margin-top:8px;">Home / Study{% if filter_summary.subject %} / {{ filter_summary.subject }}{% endif %}</div>
             <form method="get" action="/study" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
               <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Search title / topic" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:220px;" />
               <input type="text" name="subject" value="{{ request.args.get('subject','') }}" placeholder="Subject" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:140px;" />
@@ -218,7 +266,7 @@ def study_home():
             <div class="card">
               <h3>Subjects</h3>
               {% for subject in subjects %}
-                <span class="pill">{{ subject.name }} ({{ subject.count }})</span>
+                <a href="/study?subject={{ subject.name|urlencode }}" class="pill" style="text-decoration:none; color:white;">{{ subject.name }} ({{ subject.count }})</a>
               {% endfor %}
             </div>
             <div class="card">
@@ -242,6 +290,7 @@ def study_home():
                   <a href="{{ item.watch_url }}">
                     <strong>{{ item.title }}</strong>
                     <div class="muted">{{ item.subject }} · {{ item.folder or 'General' }}</div>
+                    <div class="muted">▶ Watch now</div>
                   </a>
                 {% endfor %}
               </div>
@@ -281,6 +330,14 @@ def study_home():
             </div>
           </div>
         </div>
+        <script>
+        function toggleTheme() {
+          const body = document.body;
+          const next = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+          body.setAttribute('data-theme', next);
+          document.documentElement.style.colorScheme = next;
+        }
+        </script>
       </body>
     </html>
     """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects, categories=categories, folders=folders, filter_summary=filter_summary, request=request)
