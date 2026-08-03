@@ -86,7 +86,8 @@ def admin_dashboard_view():
             <td>{{ 'Yes' if entry.trending else 'No' }}</td>
             <td>
               <a href="/admin/toggle-featured/{{ entry.token }}">Toggle Featured</a> |
-              <a href="/admin/toggle-trending/{{ entry.token }}">Toggle Trending</a>
+              <a href="/admin/toggle-trending/{{ entry.token }}">Toggle Trending</a> |
+              <a href="/admin/delete/{{ entry.token }}" style="color:#fda4af;">Delete</a>
             </td>
           </tr>
           {% endfor %}
@@ -119,5 +120,13 @@ def toggle_trending_view(token):
         if str(entry.get("token")) == str(token):
             entry["trending"] = not bool(entry.get("trending"))
             break
+    _save_entries(entries)
+    return redirect("/admin/dashboard")
+
+
+def delete_entry_view(token):
+    require_admin()
+    entries = _load_entries()
+    entries = [entry for entry in entries if str(entry.get("token")) != str(token)]
     _save_entries(entries)
     return redirect("/admin/dashboard")

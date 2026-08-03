@@ -166,6 +166,18 @@ def build_video_index(catalog_path: Optional[str] = None, subject: Optional[str]
         folder = video.get("folder") or "General"
         folders[folder] = folders.get(folder, 0) + 1
 
+    playlists = []
+    playlist_map = {}
+    for video in videos:
+        subject_name = video.get("subject") or "General"
+        playlist_map.setdefault(subject_name, []).append(video)
+    for subject_name, subject_videos in sorted(playlist_map.items(), key=lambda item: item[0].lower()):
+        subject_videos_sorted = sorted(subject_videos, key=lambda item: (item.get("timestamp", "")), reverse=True)
+        playlists.append({
+            "subject": subject_name,
+            "videos": subject_videos_sorted[:6],
+        })
+
     return {
         "videos": filtered,
         "featured": featured[:6],
@@ -180,6 +192,7 @@ def build_video_index(catalog_path: Optional[str] = None, subject: Optional[str]
             {"name": name, "count": count}
             for name, count in sorted(folders.items(), key=lambda item: (-item[1], item[0]))
         ],
+        "playlists": playlists[:8],
         "filter_summary": {
             "subject": subject_param if subject_param else "",
             "date": date_param if date_param else "",

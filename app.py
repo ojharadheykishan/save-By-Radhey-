@@ -5,7 +5,7 @@ import mimetypes
 import requests
 from flask import Flask, send_file, abort, redirect, request, render_template_string
 from safe_repo.core.media_links import get_stream_file, read_stream_entries, get_stream_entry
-from safe_repo.web.admin import admin_dashboard_view, admin_login_view, admin_logout_view, toggle_featured_view, toggle_trending_view
+from safe_repo.web.admin import admin_dashboard_view, admin_login_view, admin_logout_view, toggle_featured_view, toggle_trending_view, delete_entry_view
 from safe_repo.web.study import build_public_study_url, build_video_index, load_catalog_entries
 
 app = Flask(__name__)
@@ -36,6 +36,7 @@ def home():
     latest = index.get("latest", [])
     trending = index.get("trending", [])
     subjects = index.get("subjects", [])
+    playlists = index.get("playlists", [])
 
     return render_template_string("""
     <html>
@@ -138,6 +139,26 @@ def home():
             </div>
           </div>
 
+          {% if playlists %}
+            <div class="section">
+              <h2>Subject playlists</h2>
+              <div class="video-grid">
+                {% for playlist in playlists %}
+                  <div class="video-item">
+                    <div class="thumb">{{ playlist.subject[:2].upper() }}</div>
+                    <div>
+                      <strong>{{ playlist.subject }}</strong>
+                      <div class="muted">{{ playlist.videos|length }} videos ready for quick study</div>
+                    </div>
+                    <div class="actions">
+                      <a href="/study?subject={{ playlist.subject|urlencode }}">Open playlist</a>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
           {% if subjects %}
             {% for subject in subjects %}
               {% set subject_videos = [] %}
@@ -187,7 +208,7 @@ def home():
         </script>
       </body>
     </html>
-    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects)
+    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects, playlists=playlists)
 
 
 @app.route('/study')
@@ -204,6 +225,7 @@ def study_home():
     subjects = index.get("subjects", [])
     categories = index.get("categories", [])
     folders = index.get("folders", [])
+    playlists = index.get("playlists", [])
     filter_summary = index.get("filter_summary", {})
 
     return render_template_string("""
@@ -261,6 +283,12 @@ def study_home():
             {% if filter_summary.subject or filter_summary.date or filter_summary.q %}
             <p style="margin-top:10px; color:#e2e8f0;">Showing results for: {% if filter_summary.subject %}subject={{ filter_summary.subject }}{% endif %}{% if filter_summary.date %} · date={{ filter_summary.date }}{% endif %}{% if filter_summary.q %} · search={{ filter_summary.q }}{% endif %}</p>
             {% endif %}
+          </div>
+          <div class="card" style="margin-top:16px;">
+            <h3>Subject playlists</h3>
+            {% for playlist in playlists %}
+              <a href="/study?subject={{ playlist.subject|urlencode }}" class="pill" style="text-decoration:none; color:white;">{{ playlist.subject }} ({{ playlist.videos|length }})</a>
+            {% endfor %}
           </div>
           <div class="grid">
             <div class="card">
@@ -340,7 +368,7 @@ def study_home():
         </script>
       </body>
     </html>
-    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects, categories=categories, folders=folders, filter_summary=filter_summary, request=request)
+    """, videos=videos, featured=featured, latest=latest, trending=trending, subjects=subjects, categories=categories, folders=folders, playlists=playlists, filter_summary=filter_summary, request=request)
 
 
 @app.route('/go')
@@ -378,6 +406,11 @@ def admin_toggle_trending(token):
     return toggle_trending_view(token)
 
 
+@app.route('/admin/delete/<token>')
+def admin_delete_entry(token):
+    return delete_entry_view(token)
+
+
 @app.route('/study/watch/<token>')
 def study_watch_page(token):
     """Watch page for a study video using the public stream and player links."""
@@ -389,6 +422,12 @@ def study_watch_page(token):
 
     if not video:
         abort(404)
+
+    related_videos = []
+    for entry in load_catalog_entries():
+        if str(entry.get("subject")) == str(video.get("subject")) and str(entry.get("token")) != str(token):
+            related_videos.append(entry)
+    related_videos = related_videos[:6]
 
     return render_template_string("""
     <html>
@@ -420,12 +459,32 @@ def study_watch_page(token):
               <span class="pill">{{ video.category }}</span>
             </div>
             <p>{{ video.description or 'Study video from the Safe Repo media archive.' }}</p>
-            <p><a href="{{ video.player_url }}" target="_blank">Open player page</a> · <a href="{{ video.stream_url }}" target="_blank">Open direct stream</a></p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin:12px 0;">
+              <a href="{{ video.player_url }}" target="_blank">Open player page</a>
+              <a href="{{ video.stream_url }}" target="_blank">Open direct stream</a>
+              <a href="{{ video.stream_url }}?download=1" target="_blank">Download</a>
+              <a href="javascript:void(0);" onclick="copyLink()">Copy link</a>
+            </div>
+            {% if related_videos %}
+            <div style="margin-top:10px;">
+              <strong>More in this subject</strong>
+              <ul>
+                {% for item in related_videos %}
+                <li><a href="/study/watch/{{ item.token }}">{{ item.title }}</a></li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
           </div>
         </div>
+        <script>
+          function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied'));
+          }
+        </script>
       </body>
     </html>
-    """, video=video)
+    """, video=video, related_videos=related_videos)
 
 
 @app.route('/health')
