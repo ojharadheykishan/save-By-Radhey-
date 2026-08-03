@@ -33,7 +33,8 @@ def home():
     subject_filter = (request.args.get('subject') or '').strip()
     date_filter = (request.args.get('date') or '').strip()
     search_query = (request.args.get('q') or '').strip()
-    index = build_video_index(subject=subject_filter, date=date_filter, q=search_query)
+    folder_filter = (request.args.get('folder') or '').strip()
+    index = build_video_index(subject=subject_filter, date=date_filter, q=search_query, folder=folder_filter)
     videos = index.get("videos", [])
     featured = index.get("featured", [])
     latest = index.get("latest", [])
@@ -101,20 +102,17 @@ def home():
           <div class="hero">
             <h1>StudyHub by Safe Repo</h1>
             <p>Premium study videos, subject-wise playlists, and instant public playback links from the same media archive.</p>
-            {% if filter_summary.subject or filter_summary.date or filter_summary.q %}
-            <div class="theme-note" style="margin-bottom:10px;">Showing results for: {% if filter_summary.subject %}subject={{ filter_summary.subject }}{% endif %}{% if filter_summary.date %} · date={{ filter_summary.date }}{% endif %}{% if filter_summary.q %} · search={{ filter_summary.q }}{% endif %}</div>
+            {% if filter_summary.subject or filter_summary.date or filter_summary.q or filter_summary.folder %}
+            <div class="theme-note" style="margin-bottom:10px;">Showing results for: {% if filter_summary.subject %}subject={{ filter_summary.subject }}{% endif %}{% if filter_summary.folder %} · folder={{ filter_summary.folder }}{% endif %}{% if filter_summary.date %} · date={{ filter_summary.date }}{% endif %}{% if filter_summary.q %} · search={{ filter_summary.q }}{% endif %}</div>
             {% endif %}
-            <form class="search-box" action="/" method="get">
-              <input type="text" name="q" placeholder="Search chapters, topics, or subjects" />
-              <button type="submit">Search</button>
-            </form>
-            <div class="search-box" style="margin-top:14px;">
+            <form class="search-box" action="/" method="get" style="margin-top:14px;">
               <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Search chapters, topics, or subjects" />
               <input type="text" name="subject" value="{{ request.args.get('subject','') }}" placeholder="Subject" />
+              <input type="text" name="folder" value="{{ request.args.get('folder','') }}" placeholder="Folder" />
               <input type="text" name="date" value="{{ request.args.get('date','') }}" placeholder="Date (YYYY-MM-DD)" />
               <button type="submit">Apply</button>
               <a href="/" style="padding:12px 16px; border-radius:999px; border:none; background:rgba(255,255,255,0.14); color:white; text-decoration:none; font-weight:700;">Clear</a>
-            </div>
+            </form>
             <div class="stats">
               <div class="card">
                 <div><strong>{{ videos|length }}</strong></div>
@@ -165,7 +163,7 @@ def home():
                       <div class="muted">{{ playlist.videos|length }} videos ready for quick study</div>
                     </div>
                     <div class="actions">
-                      <a href="/study?subject={{ playlist.subject|urlencode }}">Open playlist</a>
+                      <a href="/study?subject={{ playlist.subject|urlencode }}&folder={{ playlist.folder|urlencode }}">Open playlist</a>
                     </div>
                   </div>
                 {% endfor %}
@@ -231,7 +229,8 @@ def study_home():
     subject_filter = (request.args.get('subject') or '').strip()
     date_filter = (request.args.get('date') or '').strip()
     search_query = (request.args.get('q') or '').strip()
-    index = build_video_index(subject=subject_filter, date=date_filter, q=search_query)
+    folder_filter = (request.args.get('folder') or '').strip()
+    index = build_video_index(subject=subject_filter, date=date_filter, q=search_query, folder=folder_filter)
     videos = index.get("videos", [])
     featured = index.get("featured", [])
     latest = index.get("latest", [])
@@ -290,18 +289,19 @@ def study_home():
             <form method="get" action="/study" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
               <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Search title / topic" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:220px;" />
               <input type="text" name="subject" value="{{ request.args.get('subject','') }}" placeholder="Subject" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:140px;" />
+              <input type="text" name="folder" value="{{ request.args.get('folder','') }}" placeholder="Folder" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:140px;" />
               <input type="text" name="date" value="{{ request.args.get('date','') }}" placeholder="Date (YYYY-MM-DD)" style="padding:10px; border-radius:8px; border:1px solid #1d4ed8; min-width:160px;" />
               <button type="submit" style="padding:10px 14px; border-radius:8px; border:none; background:#0f172a; color:white;">Filter</button>
               <a href="/study" style="padding:10px 14px; border-radius:8px; background:#1d4ed8; color:white; text-decoration:none;">Clear</a>
             </form>
-            {% if filter_summary.subject or filter_summary.date or filter_summary.q %}
-            <p style="margin-top:10px; color:#e2e8f0;">Showing results for: {% if filter_summary.subject %}subject={{ filter_summary.subject }}{% endif %}{% if filter_summary.date %} · date={{ filter_summary.date }}{% endif %}{% if filter_summary.q %} · search={{ filter_summary.q }}{% endif %}</p>
+            {% if filter_summary.subject or filter_summary.date or filter_summary.q or filter_summary.folder %}
+            <p style="margin-top:10px; color:#e2e8f0;">Showing results for: {% if filter_summary.subject %}subject={{ filter_summary.subject }}{% endif %}{% if filter_summary.folder %} · folder={{ filter_summary.folder }}{% endif %}{% if filter_summary.date %} · date={{ filter_summary.date }}{% endif %}{% if filter_summary.q %} · search={{ filter_summary.q }}{% endif %}</p>
             {% endif %}
           </div>
           <div class="card" style="margin-top:16px;">
             <h3>Subject playlists</h3>
             {% for playlist in playlists %}
-              <a href="/study?subject={{ playlist.subject|urlencode }}" class="pill" style="text-decoration:none; color:white;">{{ playlist.subject }} ({{ playlist.videos|length }})</a>
+              <a href="/study?subject={{ playlist.subject|urlencode }}&folder={{ playlist.folder|urlencode }}" class="pill" style="text-decoration:none; color:white;">{{ playlist.subject }} / {{ playlist.folder }} ({{ playlist.videos|length }})</a>
             {% endfor %}
           </div>
           <div class="grid">
@@ -391,7 +391,8 @@ def public_study_redirect():
     subject = (request.args.get('subject') or '').strip()
     date = (request.args.get('date') or '').strip()
     q = (request.args.get('q') or '').strip()
-    target = build_public_study_url(request.url_root, subject=subject, date=date, q=q)
+    folder = (request.args.get('folder') or '').strip()
+    target = build_public_study_url(request.url_root, subject=subject, date=date, q=q, folder=folder)
     return redirect(target, code=302)
 
 

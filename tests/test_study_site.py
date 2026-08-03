@@ -192,7 +192,7 @@ def test_build_video_index_exposes_subject_playlists(tmp_path):
         {
             "token": "one",
             "title": "Alpha",
-            "description": "A",
+            "description": "Folder: Mechanics\nA",
             "subject": "Physics",
             "category": "Class 11",
             "player_url": "https://example.com/player/one",
@@ -203,7 +203,7 @@ def test_build_video_index_exposes_subject_playlists(tmp_path):
         {
             "token": "two",
             "title": "Beta",
-            "description": "B",
+            "description": "Folder: Mechanics\nB",
             "subject": "Physics",
             "category": "Class 11",
             "player_url": "https://example.com/player/two",
@@ -215,4 +215,36 @@ def test_build_video_index_exposes_subject_playlists(tmp_path):
 
     index = build_video_index(str(catalog_path))
     assert index["playlists"][0]["subject"] == "Physics"
+    assert index["playlists"][0]["folder"] == "Mechanics"
     assert len(index["playlists"][0]["videos"]) == 2
+
+
+def test_build_video_index_filters_by_folder(tmp_path):
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(json.dumps([
+        {
+            "token": "one",
+            "title": "Alpha",
+            "description": "Folder: Mechanics\nA",
+            "subject": "Physics",
+            "category": "Class 11",
+            "player_url": "https://example.com/player/one",
+            "stream_url": "https://example.com/stream/one",
+            "timestamp": "2026-08-02 10:00:00",
+            "date": "2026-08-02"
+        },
+        {
+            "token": "two",
+            "title": "Beta",
+            "description": "Folder: Waves\nB",
+            "subject": "Physics",
+            "category": "Class 11",
+            "player_url": "https://example.com/player/two",
+            "stream_url": "https://example.com/stream/two",
+            "timestamp": "2026-08-03 10:00:00",
+            "date": "2026-08-03"
+        }
+    ]), encoding="utf-8")
+
+    index = build_video_index(str(catalog_path), subject="Physics", folder="Mechanics")
+    assert [video["token"] for video in index["videos"]] == ["one"]
